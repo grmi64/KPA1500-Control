@@ -10,6 +10,6 @@ SHA-256: e1f248fca28289935afcbee1ad3cf46beacee83aac75076112114827408e4762
 
 Separate approved-tester download: https://dxcaliber.com/beta/download-amplifier . Listing: https://dxcaliber.com/downloads . Existing combined DX Caliber/PowerMaster and meter-only installers retained.
 
-Private R2 full-download checksum matched the final original. Website suite: 48 passing tests. Anonymous GET, HEAD, Range and forged-token live requests were blocked. Public browser listing verified. A fresh authenticated browser download was not repeated because the sign-in session expired. Clean-machine installation remains pending.
+Private R2 full-download checksum matched the final original. Website suite: 48 passing tests. Anonymous GET, HEAD, Range and forged-token live requests were blocked. Public browser listing verified. After refreshing the Safari sign-in, an approved-tester download completed: 4,741,095 bytes and SHA-256 exactly matched the notarized original. Clean-machine installation remains pending.
 
 See HARDWARE_TESTS.md for completed USB tests and remaining hardware checks. The running local station apps were not replaced or restarted for release packaging.
