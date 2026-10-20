@@ -97,7 +97,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
     func showError(_ message:String) { let alert=NSAlert();alert.messageText="KPA1500 Control";alert.informativeText=message;alert.runModal() }
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool)->Bool { window?.makeKeyAndOrderFront(nil);return true }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication)->Bool { true }
-    func applicationWillTerminate(_ notification:Notification) { shuttingDown = true; if let p=process,p.isRunning {p.terminationHandler = nil;p.terminate();p.waitUntilExit()} }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !shuttingDown else { return .terminateLater }
+        shuttingDown = true
+        guard let p = process, p.isRunning else { return .terminateNow }
+        p.terminationHandler = nil
+        p.terminate()
+        DispatchQueue.global(qos: .utility).async {
+            let deadline = Date().addingTimeInterval(5)
+            while p.isRunning && Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
+            if p.isRunning { Darwin.kill(p.processIdentifier, SIGKILL) }
+            DispatchQueue.main.async { sender.reply(toApplicationShouldTerminate: true) }
+        }
+        return .terminateLater
+    }
 }
 let app=NSApplication.shared
 let delegate=AppDelegate()

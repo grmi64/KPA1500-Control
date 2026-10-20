@@ -1,12 +1,25 @@
 """One amplifier owner in an isolated worker process; HTTP reads cached state only."""
-import glob,json,multiprocessing,queue,threading,time,uuid
+import glob,json,multiprocessing,queue,threading,time,uuid,signal
 from pathlib import Path
 from protocol import Session
 from transport import SerialTransport,BAUDS
 from simulator import SimulatorTransport
 ACTIONS={'operate','standby','antenna_1','antenna_2','antenna_next','atu_in','atu_bypass','tune','cancel_tune','clear_fault','demo_tx_on','demo_tx_off'}
 def ports():return sorted(set(glob.glob('/dev/cu.usbserial*')+glob.glob('/dev/cu.usbmodem*')))
+class StopFlag:
+ # No process-shared condition lock can be stranded by a terminating reader.
+ def __init__(self):self.value=multiprocessing.Value('b',0,lock=False)
+ def set(self):self.value.value=1
+ def is_set(self):return bool(self.value.value)
+ def wait(self,seconds):
+  deadline=time.monotonic()+seconds
+  while not self.is_set() and time.monotonic()<deadline:time.sleep(min(.025,max(0,deadline-time.monotonic())))
+  return self.is_set()
 def worker_main(config,events,commands,stop):
+ signal.signal(signal.SIGINT,signal.SIG_IGN)
+ signal.signal(signal.SIGTERM,signal.SIG_DFL)
+ # State is disposable on shutdown; never wait for an undrained UI queue.
+ events.cancel_join_thread()
  transport=None
  try:
   demo=config['mode']=='simulator';transport=SimulatorTransport() if demo else SerialTransport(config['port'],config['baud'])
@@ -38,20 +51,34 @@ def worker_main(config,events,commands,stop):
 class Controller:
  def __init__(self,settings):
   self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
-  self.config={'mode':'usb','port':'','baud':230400}
+  self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False}
   try:
-   saved=json.loads(self.settings.read_text());self.config.update({k:saved[k] for k in ('port','baud') if k in saved})
+   saved=json.loads(self.settings.read_text());self.config.update({k:saved[k] for k in ('port','baud') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True
   except (OSError,ValueError):pass
   self.clear('disconnected','Choose the amplifier’s Host PC USB port and click Connect, or try Simulator.')
  def clear(self,status,message):self.state={'status':status,'message':message,'demo':False};self.received=0
+ def save_settings(self,value):
+  port=value.get('port','');baud=value.get('baud',230400);automatic=value.get('auto_connect',False)
+  if type(automatic) is not bool or type(baud) is not int or baud not in BAUDS:raise ValueError('Invalid startup connection settings.')
+  if not isinstance(port,str) or (port and (not port.startswith('/dev/cu.') or '/' in port[8:])) or (automatic and not port):raise ValueError('Select the amplifier Host PC USB port before enabling auto-connect.')
+  self.settings.parent.mkdir(parents=True,exist_ok=True);tmp=self.settings.with_suffix('.tmp');tmp.write_text(json.dumps(dict(port=port,baud=baud,auto_connect=automatic)));tmp.replace(self.settings)
+  self.config['auto_connect']=automatic
+ def startup(self):
+  if self.config['auto_connect']:
+   try:self.connect(dict(self.config,mode='usb'))
+   except (ValueError,OSError) as exc:self.clear('error','Startup connection failed: '+str(exc)+'. Connect manually when ready.')
  def disconnect(self):
   with self.operation:self._disconnect()
  def _disconnect(self):
   if self.worker:
    self.stop.set();self.worker.join(timeout=2)
    if self.worker.is_alive():self.worker.terminate();self.worker.join(timeout=1)
+   if self.worker.is_alive():self.worker.kill();self.worker.join(timeout=1)
    if self.worker.is_alive():raise RuntimeError('Amplifier worker did not stop. Close the app before reconnecting.')
    self.worker=None
+  for channel in (self.events,self.commands):
+   if channel:channel.cancel_join_thread();channel.close()
+  self.events=None;self.commands=None
   with self.guard:
    self.generation=uuid.uuid4().hex;self.clear('disconnected','Amplifier disconnected.');self.action_log=[]
  def connect(self,value):
@@ -60,10 +87,10 @@ class Controller:
   if type(baud) is not int or baud not in BAUDS:raise ValueError('Select a supported baud rate.')
   if mode=='usb' and (not isinstance(port,str) or not port.startswith('/dev/cu.') or '/' in port[8:]):raise ValueError('Select the amplifier Host PC USB port.')
   with self.operation:
-   self._disconnect();self.config={'mode':mode,'port':port,'baud':baud}
+   self._disconnect();self.config={'mode':mode,'port':port,'baud':baud,'auto_connect':self.config['auto_connect']}
    if mode=='usb':
-    self.settings.parent.mkdir(parents=True,exist_ok=True);tmp=self.settings.with_suffix('.tmp');tmp.write_text(json.dumps({'port':port,'baud':baud}));tmp.replace(self.settings)
-   self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=multiprocessing.Event()
+    self.save_settings(self.config)
+   self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=StopFlag()
    with self.guard:self.clear('connecting','Identifying amplifier…');self.state['demo']=mode=='simulator'
    self.worker=multiprocessing.Process(target=worker_main,args=(self.config,self.events,self.commands,self.stop),daemon=True);self.worker.start()
   return self.snapshot()

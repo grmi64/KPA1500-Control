@@ -150,3 +150,41 @@ class DisconnectGuardTests(unittest.TestCase):
   transport=SimulatorTransport();amp=Session(transport,cancelled=lambda:True);amp.identify()
   with self.assertRaisesRegex(ValueError,'closing'):amp.action('operate')
   self.assertNotIn('^OS1;',transport.writes)
+
+class ShutdownTests(unittest.TestCase):
+ def test_service_sigterm_exits_with_connected_reader_and_queued_state(self):
+  with tempfile.TemporaryDirectory() as directory:
+   for _ in range(3):
+    process=subprocess.Popen([sys.executable,str(pathlib.Path(__file__).resolve().parents[1]/'Sources/server.py'),'--demo','--no-browser','--http-port','0','--settings',str(pathlib.Path(directory)/'settings.json')],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    try:
+     line=process.stdout.readline();self.assertIn('http://127.0.0.1:',line)
+     url=line.split('http://',1)[1].strip();url='http://'+url+'state'
+     for _ in range(40):
+      if json.load(urllib.request.urlopen(url))['state']['status']=='live':break
+      time.sleep(.05)
+     # Stop polling so shutdown also covers undrained state messages.
+     time.sleep(.5);started=time.monotonic();process.terminate();process.wait(timeout=5)
+     self.assertEqual(process.returncode,0);self.assertLess(time.monotonic()-started,4)
+    finally:
+     if process.poll() is None:process.kill();process.wait()
+     process.stdout.close();process.stderr.close()
+
+class StartupTests(unittest.TestCase):
+ def test_default_off_and_saved_usb_startup_once(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=pathlib.Path(directory)/'settings.json';controller=Controller(path)
+   with patch.object(controller,'connect') as connect:
+    controller.startup();connect.assert_not_called()
+   controller.save_settings({'auto_connect':True,'port':'/dev/cu.unit-test','baud':230400})
+   self.assertIsNone(controller.worker)
+   restored=Controller(path)
+   with patch.object(restored,'connect',side_effect=OSError('Port unavailable')) as connect:
+    restored.startup();connect.assert_called_once();self.assertEqual(connect.call_args.args[0]['mode'],'usb');self.assertEqual(restored.state['status'],'error')
+   restored.save_settings({'auto_connect':False,'port':'/dev/cu.unit-test','baud':230400})
+   self.assertFalse(Controller(path).config['auto_connect'])
+ def test_startup_setting_rejects_missing_port_and_invalid_values(self):
+  with tempfile.TemporaryDirectory() as directory:
+   controller=Controller(pathlib.Path(directory)/'settings.json')
+   for value in ({'auto_connect':True,'port':''},{'auto_connect':'true','port':'/dev/cu.test'},{'auto_connect':True,'port':'/dev/cu.x/../radio'},{'auto_connect':True,'port':'/dev/cu.test','baud':1}):
+    with self.assertRaises(ValueError):controller.save_settings(value)
+   self.assertIsNone(controller.worker)

@@ -1,4 +1,4 @@
-"""Local, token-protected UI service. No radio/CAT sockets, no automatic USB connection."""
+"""Local, token-protected UI service. No radio/CAT sockets; opt-in USB startup."""
 import argparse,json,multiprocessing,secrets,signal,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
@@ -38,7 +38,10 @@ def handler_for(controller,token):
     value=json.loads(self.rfile.read(length))
     if not isinstance(value,dict):raise ValueError('Expected an object.')
     action=path[len(prefix):]
-    if action=='connect':result=controller.connect(value)
+    if action=='settings':
+     with controller.operation:controller.save_settings(value)
+     result=controller.snapshot()
+    elif action=='connect':result=controller.connect(value)
     elif action=='disconnect':controller.disconnect();result=controller.snapshot()
     elif action=='control':result=controller.action(value)
     else:return self.reply(404,{'error':'Unknown operation.'})
@@ -50,6 +53,7 @@ def main():
  parser=argparse.ArgumentParser();parser.add_argument('--http-port',type=int,default=51980);parser.add_argument('--no-browser',action='store_true');parser.add_argument('--demo',action='store_true');parser.add_argument('--settings',type=Path,default=Path.home()/'Library/Application Support/com.grmi64.KPA1500Control/connection.json');args=parser.parse_args()
  controller=Controller(args.settings);token=secrets.token_urlsafe(24);server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token));server.daemon_threads=True
  if args.demo:controller.connect({'mode':'simulator'})
+ else:controller.startup()
  # SIGTERM closes USB worker too; Quit should not leave a reader behind.
  def shutdown(signum,frame):raise KeyboardInterrupt
  signal.signal(signal.SIGTERM,shutdown)
