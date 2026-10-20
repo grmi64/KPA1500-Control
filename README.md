@@ -30,6 +30,6 @@ Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.c
 
 19 automated tests completed: 18 passed and one macOS pseudo-terminal exclusivity check was skipped because that test device does not enforce USB-style exclusivity. Tests cover framing, units, readbacks, transmit/fault/stale guards, connection generations, cached state, local API isolation, advisory locking and the hardware-observed idle Standby response. Native Full/Compact, Light/Dark and stay-on-top were visually checked with the simulator.
 
-Initial physical USB tests on firmware 03.06 passed for monitoring, RF readings, Operate/Standby, ATU In/Bypass and ATU Tune. See [HARDWARE_TESTS.md](HARDWARE_TESTS.md) for evidence, limitations and remaining tests. This is a local development build with an ad-hoc signature; it has not been Developer ID signed or notarized.
+Initial physical USB tests on firmware 03.06 passed for monitoring, RF readings, Operate/Standby, ATU In/Bypass and ATU Tune. See [HARDWARE_TESTS.md](HARDWARE_TESTS.md) for evidence, limitations and remaining tests. The `dist` build uses an ad-hoc development signature. The separate 0.1.0 beta release is Developer ID signed, Apple-notarized and stapled; see RELEASE-0.1.0.md.
 
 Run tests with `python3 -m unittest discover -s tests`. The local packaging script is `scripts/build.sh`; it requires Xcode command-line tools and the configured PyInstaller environment.
