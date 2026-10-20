@@ -1,0 +1,35 @@
+# KPA1500 Control 0.1.0
+
+Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
+
+## Getting started
+
+The app starts disconnected. Choose **Simulator · no hardware** and Connect to explore both views without equipment. For USB, use the KPA1500 **Host PC** connector, select its `/dev/cu.*` port, and match the amplifier's **SERIAL SPEED HOST** baud setting before connecting. Do not select your radio or PowerMaster port.
+
+**Full view** includes forward/reflected power, SWR, temperature, input power, voltage/current, frequency, LCD text, firmware, faults, connection settings and operation history. **Compact view** uses the same connection and controls, with optional native **Stay on top**. Light and Dark appearance are available in both.
+
+Controls: Operate, Standby, next already-enabled antenna, ATU In/Bypass, Tune/Cancel tune, and clear fault. Tune requests can cause the amplifier to request RF through the station's existing hardware connections. The app does not issue radio CAT commands.
+
+## Connection and control behavior
+
+- One serial worker and one app instance; per-port locking and serial exclusivity protect against duplicate readers.
+- USB commands are paced by waiting for replies. No automatic reconnect or replay of operating commands.
+- Each operation rechecks amplifier transmit, power, tuning and fault status. Unknown/stale or transmitting state blocks controls; Cancel tune remains available during an active tune.
+- Display values expire when readings go stale. Actions use amplifier readback, rather than assuming success.
+- Fault history and command history are session-only. USB port/baud and display preferences are saved separately from DX Caliber.
+
+## Architecture and future integration
+
+`transport.py` owns the byte transport; a future TCP transport can implement the same write/read/close interface. `protocol.py` implements the documented Elecraft protocol and guarded operations. `engine.py` owns the amplifier worker and cached shared state. `server.py` exposes a loopback-only, token-protected service. `index.html`, `app.js`, and `app.css` provide both views; `App.swift` supplies the native window, singleton guard and stay-on-top support.
+
+The compact panel can later be embedded by DX Caliber while this standalone service continues owning amplifier communication. That integration will require an explicit authenticated connection and embedding policy. TCP/IP and DX Caliber integration are architectural provisions, not enabled features in 0.1.0. There is no dependency on DX Caliber or its CAT scheduler.
+
+Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.com/KPA1500/Manuals%20Downloads/KPA1500ProgrammingReferenceV3.pdf). Implementation is independent; no QK4 source was incorporated.
+
+## Validation and build
+
+19 automated tests completed: 18 passed and one macOS pseudo-terminal exclusivity check was skipped because that test device does not enforce USB-style exclusivity. Tests cover framing, units, readbacks, transmit/fault/stale guards, connection generations, cached state, local API isolation, advisory locking and the hardware-observed idle Standby response. Native Full/Compact, Light/Dark and stay-on-top were visually checked with the simulator.
+
+Initial physical USB tests on firmware 03.06 passed for monitoring, RF readings, Operate/Standby, ATU In/Bypass and ATU Tune. See [HARDWARE_TESTS.md](HARDWARE_TESTS.md) for evidence, limitations and remaining tests. This is a local development build with an ad-hoc signature; it has not been Developer ID signed or notarized.
+
+Run tests with `python3 -m unittest discover -s tests`. The local packaging script is `scripts/build.sh`; it requires Xcode command-line tools and the configured PyInstaller environment.

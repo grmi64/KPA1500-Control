@@ -1,0 +1,7 @@
+dist/
+release/*.app/
+__pycache__/
+*.pyc
+.DS_Store
+backups/
+live-usb.png
