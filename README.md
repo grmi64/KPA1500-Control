@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.2 (local DEV)
+# KPA1500 Control 0.1.2
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -22,7 +22,7 @@ Controls: Operate, Standby, next already-enabled antenna, ATU In/Bypass, Tune/Ca
 
 `transport.py` owns the byte transport; a future TCP transport can implement the same write/read/close interface. `protocol.py` implements the documented Elecraft protocol and guarded operations. `engine.py` owns the amplifier worker and cached shared state. `server.py` exposes a loopback-only, token-protected service. `index.html`, `app.js`, and `app.css` provide both views; `App.swift` supplies the native window, singleton guard and stay-on-top support.
 
-The compact panel can later be embedded by DX Caliber while this standalone service continues owning amplifier communication. That integration will require an explicit authenticated connection and embedding policy. TCP/IP and DX Caliber integration are architectural provisions, not enabled features in 0.1.0. There is no dependency on DX Caliber or its CAT scheduler.
+The compact panel can later be embedded by DX Caliber while this standalone service continues owning amplifier communication. That integration will require an explicit authenticated connection and embedding policy. TCP/IP and DX Caliber integration are architectural provisions, not enabled features in 0.1.2. There is no dependency on DX Caliber or its CAT scheduler.
 
 Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.com/KPA1500/Manuals%20Downloads/KPA1500ProgrammingReferenceV3.pdf). Implementation is independent; no QK4 source was incorporated.
 
@@ -30,7 +30,7 @@ Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.c
 
 22 automated tests completed: 21 passed and one macOS pseudo-terminal exclusivity check was skipped because that test device does not enforce USB-style exclusivity. Tests cover framing, units, readbacks, transmit/fault/stale guards, connection generations, cached state, local API isolation, advisory locking and the hardware-observed idle Standby response. Native Full/Compact, Light/Dark and stay-on-top were visually checked with the simulator.
 
-Initial physical USB tests on firmware 03.06 passed for monitoring, RF readings, Operate/Standby, ATU In/Bypass and ATU Tune. See [HARDWARE_TESTS.md](HARDWARE_TESTS.md) for evidence, limitations and remaining tests. The `dist` build uses an ad-hoc development signature. The separate 0.1.0 beta release is Developer ID signed, Apple-notarized and stapled; see RELEASE-0.1.0.md.
+Initial physical USB tests on firmware 03.06 passed for monitoring, RF readings, Operate/Standby, ATU In/Bypass and ATU Tune. See [HARDWARE_TESTS.md](HARDWARE_TESTS.md) for evidence, limitations and remaining tests. The `dist` build uses an ad-hoc development signature. The separate 0.1.2 beta release is Developer ID signed, Apple-notarized and stapled; see RELEASE-0.1.2.md.
 
 Run tests with `python3 -m unittest discover -s tests`. The local packaging script is `scripts/build.sh`; it requires Xcode command-line tools and the configured PyInstaller environment.
 
@@ -38,4 +38,4 @@ Run tests with `python3 -m unittest discover -s tests`. The local packaging scri
 
 The native window no longer blocks indefinitely waiting for its service during Quit. Shutdown is asynchronous with a five-second service timeout. The isolated worker uses a stop flag without a process-shared condition lock, releases its transport, and does not wait for undrained disposable state messages. Disconnect closes its queues and bounds worker termination.
 
-Validation: 20 tests (19 passed, one pseudo-terminal skip); three connected simulator service shutdown cycles in the frozen package exited cleanly in about 0.04 seconds each. Native close-button test left no app/service processes or amplifier USB owner. Published beta remains notarized 0.1.0 pending a new release.
+Validation: 20 tests (19 passed, one pseudo-terminal skip); three connected simulator service shutdown cycles in the frozen package exited cleanly in about 0.04 seconds each. Native close-button test left no app/service processes or amplifier USB owner. This fix is included in the notarized 0.1.2 beta release.
