@@ -7,11 +7,12 @@ swiftc -module-cache-path /tmp/kpa1500-swift-cache -O Sources/App.swift -framewo
 BUILD_PYTHON="${AMP_BUILD_PYTHON:-/tmp/powermaster-build-env/bin/python}"
 PYINSTALLER_CONFIG_DIR=/tmp/kpa1500-pyinstaller "$BUILD_PYTHON" -m PyInstaller --noconfirm --onedir --name amp-engine --distpath /tmp/kpa1500-frozen --workpath /tmp/kpa1500-freeze-work --specpath /tmp/kpa1500-freeze-spec --add-data "$PWD/Sources/index.html:." --add-data "$PWD/Sources/app.js:." --add-data "$PWD/Sources/app.css:." Sources/server.py
 ditto /tmp/kpa1500-frozen/amp-engine "$APP/Contents/Resources/amp-engine"
+cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 /usr/bin/python3 - "$APP" <<'PY'
 import plistlib,sys
 from pathlib import Path
 p=Path(sys.argv[1])/'Contents/Info.plist'
-p.write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.grmi64.KPA1500Control',CFBundleName='KPA1500 Control',CFBundleDisplayName='KPA1500 Control',CFBundleExecutable='KPA1500Control',CFBundlePackageType='APPL',CFBundleShortVersionString='0.1.2',CFBundleVersion='3',LSMinimumSystemVersion='12.0',NSHighResolutionCapable=True,NSPrincipalClass='NSApplication')))
+p.write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.grmi64.KPA1500Control',CFBundleName='KPA1500 Control',CFBundleDisplayName='KPA1500 Control',CFBundleExecutable='KPA1500Control',CFBundlePackageType='APPL',CFBundleShortVersionString='0.1.3',CFBundleVersion='4',CFBundleIconFile='AppIcon.icns',LSMinimumSystemVersion='12.0',NSHighResolutionCapable=True,NSPrincipalClass='NSApplication')))
 PY
 codesign --force --deep --sign - "$APP"
 echo "$APP"
