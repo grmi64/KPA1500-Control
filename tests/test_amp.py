@@ -20,7 +20,7 @@ class ProtocolTests(unittest.TestCase):
   self.assertEqual(parse('^AN32;'),{'antenna':32})
   self.assertEqual(parse('^BN05;'),{'band':'20m'})
  def test_invalid_and_out_of_range_frames(self):
-  for raw in ['^AN00;','^BN99;','^PWFnan;','^PWI-1;','^OS2;','^TM999;','^SW99999;','garbage','^FC0;']:
+  for raw in ['^AN00;','^BN99;','^PWFnan;','^PWI-1;','^OS2;','^TM999;','^SW99999;','garbage','^FC6;']:
    with self.assertRaises(ValueError,msg=raw):parse(raw)
  def test_tx_unknown_is_not_rx(self):
   self.assertIsNone(parse('^VG unknown;')['transmitting'])

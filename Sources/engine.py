@@ -7,6 +7,7 @@ from transport import SerialTransport,TCPTransport,tcp_endpoint,BAUDS
 from simulator import SimulatorTransport
 from power import mac_address,wake_address,wake_connect
 ACTIONS={'power_on','power_off','operate','standby','antenna_1','antenna_2','antenna_next','atu_in','atu_bypass','tune','cancel_tune','clear_fault','demo_tx_on','demo_tx_off'}
+ACTIONS.update('fan_'+str(n) for n in range(6))
 def ports():return sorted(set(glob.glob('/dev/cu.usbserial*')+glob.glob('/dev/cu.usbmodem*')))
 class StopFlag:
  # No process-shared condition lock can be stranded by a terminating reader.
@@ -157,7 +158,7 @@ class Controller:
    if age is not None:state['age_seconds']=age+max(0,time.time()-self.received)
    if state.get('status')=='live' and state.get('age_seconds',99)>=2.5:state.update(status='stale',message='Amplifier readings are stale.')
    if state.get('status')!='live':
-    for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning'):state[key]=None
+    for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning','fan_minimum','fan_speed'):state[key]=None
    return dict(app_version=VERSION,schema_version=1,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
  def telemetry(self):
   # Only cached state crosses this boundary; no USB reads or operating commands.

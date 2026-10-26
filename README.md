@@ -109,3 +109,19 @@ Validation: 55 Python tests completed (54 passed, one expected macOS skip), all
 seven JavaScript suites passed, and packaged simulation verified collapsed
 routine feedback and visible disconnection feedback. Earlier USB/TCP hardware
 acceptance remains applicable; this release adds no equipment polling or commands.
+
+### 0.1.21 — Cooling controls
+
+Full view adds a collapsible Cooling section with amplifier-reported minimum
+fan speed (Auto/1–5) and current fan speed. FC/FS reads use the existing four-second
+slow cycle. Explicit fan changes use the same serialized worker and fresh RF/tune
+guards as operating controls, send one absolute FC setter, and verify readback
+without trusting a setter echo. No fan setting is restored or written on connection.
+Unsupported, stale or missing readings disable adjustment. The amplifier retains
+automatic temperature-based cooling above the chosen minimum.
+
+Offline validation: 62 Python tests completed, one expected macOS skip; all eight
+JavaScript suites passed. Signed packaged simulator confirmed level 5 and return
+to Auto, with actual fan speed remaining independently reported. The operator manually stepped through the fan speeds successfully on the installed
+Mac build over USB. Fan-setting persistence across an amplifier power cycle has
+not been tested. No radio-keying or drive-power commands are sent.

@@ -16,3 +16,5 @@ h1 .operator-callsign{display:inline-block;font-size:13px;letter-spacing:.08em;f
 .frequency-band{display:inline-block;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12px;font-weight:650;color:var(--mint);background:var(--control)}body.compact .frequency-band{grid-column:2;grid-row:1;justify-self:center;font-size:10px;padding:4px 7px}footer{justify-content:flex-start;gap:10px;white-space:nowrap;font-size:10px}footer .copyright{margin-left:auto}body.compact footer{display:flex;font-size:8px;gap:7px}
 
 body.compact .metric.forward{order:0}body.compact .metric.swr{order:1}body.compact .metric.temp{order:2}body.compact .metric.selectable{order:3}.section-toggle{background:transparent;border:0;padding:3px 0;color:var(--muted);font-size:13px;font-weight:650;text-align:left}.instrument>.section-toggle{margin-top:12px}.section-heading h2{margin:0}.card:has(>.section-heading [aria-expanded=false])>.section-heading{margin-bottom:0}
+
+.fan-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}.fan-setting select{min-width:105px}
