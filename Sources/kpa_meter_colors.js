@@ -1,7 +1,7 @@
 /* Display-only ranges, independent of amplifier protection and USB/CAT timing. */
 (function(root){
  'use strict';
- const bands={temperature:{min:0,max:110,stops:[[0,0],[65,0],[66,1],[85,1],[86,2],[110,2]]},swr:{min:1,max:5,stops:[[1,0],[1.45,0],[1.55,1],[2.1,1],[2.2,2],[5,2]]},power:{min:0,max:2000,stops:[[0,0],[1380,0],[1420,1],[1500,1],[1520,2],[2000,2]]}};
+ const bands={temperature:{min:0,max:110,stops:[[0,0],[65,0],[66,1],[85,1],[86,2],[110,2]]},swr:{min:1,max:5,stops:[[1,0],[1.45,0],[1.55,1],[2.1,1],[2.2,2],[5,2]]},power:{min:0,max:1900,stops:[[0,0],[1380,0],[1420,1],[1500,1],[1520,2],[1900,2]]}};
  const palettes={dark:[[91,216,161],[244,200,79],[245,105,96]],light:[[20,119,77],[145,101,0],[184,45,39]]};
  function valid(value){return typeof value==='number'&&Number.isFinite(value);}
  function color(kind,value,theme='dark'){

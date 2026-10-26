@@ -2,6 +2,7 @@
 import glob,json,multiprocessing,queue,threading,time,uuid,signal
 from pathlib import Path
 from protocol import Session
+from version import VERSION
 from transport import SerialTransport,TCPTransport,tcp_endpoint,BAUDS
 from simulator import SimulatorTransport
 from power import mac_address,wake_address,wake_connect
@@ -157,7 +158,7 @@ class Controller:
    if state.get('status')=='live' and state.get('age_seconds',99)>=2.5:state.update(status='stale',message='Amplifier readings are stale.')
    if state.get('status')!='live':
     for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning'):state[key]=None
-   return dict(schema_version=1,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
+   return dict(app_version=VERSION,schema_version=1,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
  def telemetry(self):
   # Only cached state crosses this boundary; no USB reads or operating commands.
   if not self.config['share_readings']:raise PermissionError('Enable Share readings with DX Caliber in KPA1500 Control.')

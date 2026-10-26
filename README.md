@@ -55,7 +55,7 @@ The DEV build is local and ad-hoc signed; the published notarized beta remains 0
 Full and Compact views use anchored, blended green/yellow/red scales: temperature
 65/66 and 85/86 C boundaries; SWR blends around 1.5 and just above 2.1; forward
 power blends around 1400 and just above 1500 W. Power scale includes headroom to
-2000 W, temperature to 110 C. Numerical values remain visible with separate
+1900 W, temperature to 110 C. Numerical values remain visible with separate
 Light/Dark text palettes; stale/missing values have no active color. These are
 presentation thresholds only and never alter amplifier protections or commands.
 Local simulator visual checks and color/boundary tests passed; 22 engine/control
@@ -92,3 +92,20 @@ The connected amplifier's MAC is read using MA and saved automatically. Changing
 
 
 0.1.15 release: USB and Ethernet power-cycle hardware tests passed with front-panel confirmation and subsequent operator testing. Includes corrected Wake-on-LAN success wording. See RELEASE-0.1.15.md.
+
+### 0.1.20 — Display layout and saved measurement selection
+
+Adds a saved choice of reflected/input power, PA current, PA voltage, frequency,
+or bypass SWR using existing cached telemetry. Frequency shows a band badge.
+Forward power uses a 0–1900 W scale with matching fill and color positions.
+The connection badge reads CONNECTED. Compact readings are ordered Forward,
+SWR, PA Temperature, then the selected measurement. Full view has saved
+show/hide controls for Status, Amplifier, Faults and Connection. Routine feedback
+appears inside Status; connection warnings, stale data, errors and unconfirmed
+commands remain visible when it is collapsed. The native About menu includes
+version and Greg Miller / NY6C attribution; copyright shares the footer line.
+
+Validation: 55 Python tests completed (54 passed, one expected macOS skip), all
+seven JavaScript suites passed, and packaged simulation verified collapsed
+routine feedback and visible disconnection feedback. Earlier USB/TCP hardware
+acceptance remains applicable; this release adds no equipment polling or commands.

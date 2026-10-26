@@ -25,6 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         guard lockFD >= 0, flock(lockFD, LOCK_EX | LOCK_NB) == 0 else { NSApp.terminate(nil); return }
         let menu = NSMenu()
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About KPA1500 Control", action: #selector(showAbout), keyEquivalent: "")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit KPA1500 Control", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let item = NSMenuItem(); item.submenu = appMenu; menu.addItem(item)
         NSApp.mainMenu = menu
@@ -43,6 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         web.autoresizingMask = [.width,.height]; window.contentView!.addSubview(web)
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
         launchReader()
+    }
+    @objc func showAbout() {
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "KPA1500 Control", .credits: NSAttributedString(string: "Developed by Greg Miller · NY6C")])
     }
     func launchReader() {
         guard let resources = Bundle.main.resourceURL else { return }
