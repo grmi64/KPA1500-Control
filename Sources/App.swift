@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         window.minSize = NSSize(width: 650,height: 650)
         window.center(); window.delegate = self
         window.setFrameAutosaveName("KPA1500MainWindow")
+        ensureWindowVisible()
+        NotificationCenter.default.addObserver(self, selector: #selector(recoverForScreenChange(_:)), name: NSApplication.didChangeScreenParametersNotification, object: nil)
         let config = WKWebViewConfiguration()
         config.userContentController.add(self, name: "displayWindow")
         let webData = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(identifier)
@@ -92,10 +94,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
                 else { window.setContentSize(NSSize(width: 1020, height: 850)) }
             }
             compact = small
+            ensureWindowVisible()
         }
     }
-    func showError(_ message:String) { let alert=NSAlert();alert.messageText="KPA1500 Control";alert.informativeText=message;alert.runModal() }
-    func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool)->Bool { window?.makeKeyAndOrderFront(nil);return true }
+    func ensureWindowVisible() {
+        guard let window = window, !window.styleMask.contains(.fullScreen) else { return }
+        let old = window.frame
+        let frame = WindowPlacement.recover(old, screens: NSScreen.screens.map { $0.visibleFrame })
+        if frame != old {
+            window.minSize = NSSize(width:min(window.minSize.width,frame.width),height:min(window.minSize.height,frame.height))
+            window.setFrame(frame, display:true)
+        }
+    }
+    @objc func recoverForScreenChange(_ notification: Notification) { ensureWindowVisible() }
+    func applicationDidBecomeActive(_ notification: Notification) { ensureWindowVisible() }
+    func showError(_ message:String) {
+        let alert=NSAlert();alert.messageText="KPA1500 Control";alert.informativeText=message
+        ensureWindowVisible()
+        if let window = window, window.isVisible { alert.beginSheetModal(for:window) }
+        else { alert.runModal() }
+    }
+    func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool)->Bool { ensureWindowVisible();window?.makeKeyAndOrderFront(nil);return true }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication)->Bool { true }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !shuttingDown else { return .terminateLater }
@@ -112,8 +131,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         return .terminateLater
     }
 }
-let app=NSApplication.shared
-let delegate=AppDelegate()
-app.delegate=delegate
-app.setActivationPolicy(.regular)
-app.run()
+@main
+struct InstrumentApplication {
+    static func main() {
+        let app=NSApplication.shared
+        let delegate=AppDelegate()
+        app.delegate=delegate
+        app.setActivationPolicy(.regular)
+        app.run()
+    }
+}

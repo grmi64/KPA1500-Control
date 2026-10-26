@@ -19,11 +19,14 @@ def handler_for(controller,token):
   def do_GET(self):
    if not self.host_ok():return self.reply(403,{'error':'Loopback host required.'})
    path=urlparse(self.path).path
+   if path=='/api/v1/telemetry':
+    try:return self.reply(200,controller.telemetry())
+    except PermissionError as exc:return self.reply(403,{'error':str(exc)})
    if not path.startswith(prefix):return self.reply(404,{'error':'Not found.'})
    name=path[len(prefix):]
    if name=='state':return self.reply(200,controller.snapshot())
    if name=='ports':return self.reply(200,{'ports':ports()})
-   assets={'':('index.html','text/html; charset=utf-8'),'app.js':('app.js','text/javascript; charset=utf-8'),'app.css':('app.css','text/css; charset=utf-8')}
+   assets={'':('index.html','text/html; charset=utf-8'),'app.js':('app.js','text/javascript; charset=utf-8'),'app.css':('app.css','text/css; charset=utf-8'),'kpa_meter_colors.js':('kpa_meter_colors.js','text/javascript; charset=utf-8')}
    if name not in assets:return self.reply(404,{'error':'Not found.'})
    filename,mime=assets[name];return self.reply(200,(ROOT/filename).read_bytes(),mime)
   def do_POST(self):

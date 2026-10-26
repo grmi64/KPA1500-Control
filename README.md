@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.3
+# KPA1500 Control 0.1.7
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -22,7 +22,7 @@ Controls: Operate, Standby, next already-enabled antenna, ATU In/Bypass, Tune/Ca
 
 `transport.py` owns the byte transport; a future TCP transport can implement the same write/read/close interface. `protocol.py` implements the documented Elecraft protocol and guarded operations. `engine.py` owns the amplifier worker and cached shared state. `server.py` exposes a loopback-only, token-protected service. `index.html`, `app.js`, and `app.css` provide both views; `App.swift` supplies the native window, singleton guard and stay-on-top support.
 
-The compact panel can later be embedded by DX Caliber while this standalone service continues owning amplifier communication. That integration will require an explicit authenticated connection and embedding policy. TCP/IP and DX Caliber integration are architectural provisions, not enabled features in 0.1.3. There is no dependency on DX Caliber or its CAT scheduler.
+DX Caliber 0.6.67 can display a read-only accessory widget using the optional local feed while this standalone service continues owning amplifier communication. Embedding an operational panel later would require an explicit authenticated connection and embedding policy. TCP/IP remains planned. There is no dependency on DX Caliber or its CAT scheduler.
 
 Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.com/KPA1500/Manuals%20Downloads/KPA1500ProgrammingReferenceV3.pdf). Implementation is independent; no QK4 source was incorporated.
 
@@ -43,3 +43,32 @@ Validation: 20 tests (19 passed, one pseudo-terminal skip); three connected simu
 ## Application icon
 
 0.1.3 adds the custom graphite/mint gauge icon with amber needle and RF waveform. Assets contains the high-resolution PNG, macOS ICNS and seven-size Windows ICO; Windows packaging remains future work. Run `python3 scripts/build_icons.py` on macOS to regenerate icon containers. See RELEASE-0.1.3.md.
+
+## DEV 0.1.4 — read-only Logger accessory feed
+
+Full view → Connection → **Share readings with DX Caliber** enables a local, read-only `/api/v1/telemetry` feed on port 51980. It is off by default, remembers the choice, and shares only cached measurements/status (including simulator labeling); it exposes no USB settings, history, credentials or operating controls. The standalone app remains the only amplifier reader. Turning sharing off immediately returns HTTP 403. DX Caliber can show one accessory widget and open the full application; it cannot operate the amplifier through this feed.
+
+The DEV build is local and ad-hoc signed; the published notarized beta remains 0.1.3. Automated simulator/API checks passed, including sharing opt-in/opt-out/persistence, no reader started by telemetry, shutdown and existing control guards. No new hardware test was performed for this change.
+
+### Meter range colors (local 0.1.5)
+
+Full and Compact views use anchored, blended green/yellow/red scales: temperature
+65/66 and 85/86 C boundaries; SWR blends around 1.5 and just above 2.1; forward
+power blends around 1400 and just above 1500 W. Power scale includes headroom to
+2000 W, temperature to 110 C. Numerical values remain visible with separate
+Light/Dark text palettes; stale/missing values have no active color. These are
+presentation thresholds only and never alter amplifier protections or commands.
+Local simulator visual checks and color/boundary tests passed; 22 engine/control
+tests passed with one skipped. USB reader and CAT architecture are unchanged.
+
+0.1.6 — Optional Station callsign in Connection, saved with local view preferences.
+A title badge remains visible in Full and Compact views and both themes; blank
+values hide the badge. Display only: no amplifier, single-reader or shared-feed
+changes. Browser UI verified lowercase normalization, compact visibility and
+reload persistence with equipment disconnected.
+
+Window placement update: preserve valid display positions; recover windows after display changes, activation/reopen, and Full/Compact transitions. Error alerts attach to the main window. Full-screen placement is left to macOS. Reader, telemetry and CAT behavior are unchanged. Native placement checks: compile Sources/WindowPlacement.swift with tests/window_placement.swift and run the resulting test executable.
+
+## Release 0.1.7
+
+Consolidates DX Caliber sharing, meter colors, callsign badge and window recovery in a signed, notarized Apple Silicon beta. See RELEASE-0.1.7.md. USB remains the hardware connection; TCP/IP is planned separately.

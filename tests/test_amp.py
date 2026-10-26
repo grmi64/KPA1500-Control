@@ -111,6 +111,16 @@ class ControllerTests(unittest.TestCase):
   token='unit-test-token';server=ThreadingHTTPServer(('127.0.0.1',0),handler_for(self.controller,token));threading.Thread(target=server.serve_forever,daemon=True).start();base='http://127.0.0.1:'+str(server.server_port)
   try:
    self.assertEqual(json.load(urllib.request.urlopen(base+'/'+token+'/state'))['model'],'KPA1500')
+   with self.assertRaises(urllib.error.HTTPError) as denied:urllib.request.urlopen(base+'/api/v1/telemetry')
+   self.assertEqual(denied.exception.code,403)
+   self.controller.save_settings({'share_readings':True})
+   feed=json.load(urllib.request.urlopen(base+'/api/v1/telemetry'))
+   self.assertEqual(feed['model'],'KPA1500');self.assertNotIn('connection',feed);self.assertNotIn('actions',feed)
+   self.assertIsNone(self.controller.worker)
+   saved=Controller(self.controller.settings);self.assertTrue(saved.config['share_readings'])
+   with self.assertRaises(ValueError):saved.save_settings({'share_readings':'yes'})
+   self.controller.save_settings({'share_readings':False})
+   with self.assertRaises(urllib.error.HTTPError):urllib.request.urlopen(base+'/api/v1/telemetry')
    for asset in ['','app.js','app.css']:
     with urllib.request.urlopen(base+'/'+token+'/'+asset) as response:self.assertEqual(response.status,200)
    for headers in [{},{'X-Amp-Token':token,'Origin':'https://foreign.test'},{'X-Amp-Token':token,'Host':'evil.test'}]:

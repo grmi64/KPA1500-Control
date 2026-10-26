@@ -51,18 +51,19 @@ def worker_main(config,events,commands,stop):
 class Controller:
  def __init__(self,settings):
   self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
-  self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False}
+  self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False}
   try:
-   saved=json.loads(self.settings.read_text());self.config.update({k:saved[k] for k in ('port','baud') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True
+   saved=json.loads(self.settings.read_text());self.config.update({k:saved[k] for k in ('port','baud') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True;self.config['share_readings']=saved.get('share_readings') is True
   except (OSError,ValueError):pass
   self.clear('disconnected','Choose the amplifier’s Host PC USB port and click Connect, or try Simulator.')
  def clear(self,status,message):self.state={'status':status,'message':message,'demo':False};self.received=0
  def save_settings(self,value):
-  port=value.get('port','');baud=value.get('baud',230400);automatic=value.get('auto_connect',False)
+  port=value.get('port',self.config['port']);baud=value.get('baud',self.config['baud']);automatic=value.get('auto_connect',self.config['auto_connect']);sharing=value.get('share_readings',self.config['share_readings'])
+  if type(sharing) is not bool:raise ValueError('Choose whether to share amplifier readings.')
   if type(automatic) is not bool or type(baud) is not int or baud not in BAUDS:raise ValueError('Invalid startup connection settings.')
   if not isinstance(port,str) or (port and (not port.startswith('/dev/cu.') or '/' in port[8:])) or (automatic and not port):raise ValueError('Select the amplifier Host PC USB port before enabling auto-connect.')
-  self.settings.parent.mkdir(parents=True,exist_ok=True);tmp=self.settings.with_suffix('.tmp');tmp.write_text(json.dumps(dict(port=port,baud=baud,auto_connect=automatic)));tmp.replace(self.settings)
-  self.config['auto_connect']=automatic
+  self.settings.parent.mkdir(parents=True,exist_ok=True);tmp=self.settings.with_suffix('.tmp');tmp.write_text(json.dumps(dict(port=port,baud=baud,auto_connect=automatic,share_readings=sharing)));tmp.replace(self.settings)
+  self.config.update(port=port,baud=baud,auto_connect=automatic,share_readings=sharing)
  def startup(self):
   if self.config['auto_connect']:
    try:self.connect(dict(self.config,mode='usb'))
@@ -87,7 +88,7 @@ class Controller:
   if type(baud) is not int or baud not in BAUDS:raise ValueError('Select a supported baud rate.')
   if mode=='usb' and (not isinstance(port,str) or not port.startswith('/dev/cu.') or '/' in port[8:]):raise ValueError('Select the amplifier Host PC USB port.')
   with self.operation:
-   self._disconnect();self.config={'mode':mode,'port':port,'baud':baud,'auto_connect':self.config['auto_connect']}
+   self._disconnect();self.config={'mode':mode,'port':port,'baud':baud,'auto_connect':self.config['auto_connect'],'share_readings':self.config['share_readings']}
    if mode=='usb':
     self.save_settings(self.config)
    self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=StopFlag()
@@ -117,6 +118,12 @@ class Controller:
    if state.get('status')!='live':
     for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning'):state[key]=None
    return dict(schema_version=1,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
+ def telemetry(self):
+  # Only cached state crosses this boundary; no USB reads or operating commands.
+  if not self.config['share_readings']:raise PermissionError('Enable Share readings with DX Caliber in KPA1500 Control.')
+  state=self.snapshot()['state']
+  keys=('status','age_seconds','forward_watts','reflected_watts','swr','temperature_c','operate','antenna','atu_enabled','demo')
+  return dict(schema_version=1,model='KPA1500',**{key:state.get(key) for key in keys})
  def action(self,value):
   with self.guard:
    snapshot=self.snapshot();name=value.get('action')
