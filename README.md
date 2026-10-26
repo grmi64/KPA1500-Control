@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.9
+# KPA1500 Control 0.1.12
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -8,7 +8,7 @@ The app starts disconnected by default. Enable **Automatically connect at startu
 
 **Full view** includes forward/reflected power, SWR, temperature, input power, voltage/current, frequency, LCD text, firmware, faults, connection settings and operation history. **Compact view** uses the same connection and controls, with optional native **Stay on top**. Light and Dark appearance are available in both.
 
-Controls: Operate, Standby, next already-enabled antenna, ATU In/Bypass, Tune/Cancel tune, and clear fault. Tune requests can cause the amplifier to request RF through the station's existing hardware connections. The app does not issue radio CAT commands.
+Controls: Operate, Standby, Ant 1 / Ant 2 selection, ATU In/Bypass, Tune/Cancel tune, and clear fault. Tune requests can cause the amplifier to request RF through the station's existing hardware connections. The app does not issue radio CAT commands.
 
 ## Connection and control behavior
 

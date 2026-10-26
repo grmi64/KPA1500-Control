@@ -102,7 +102,20 @@ class Session:
   if self.cancelled():raise ValueError('Connection is closing; control was not sent.')
   self.protocol.send(command)
   # A setter may echo the same tag. Readback is the amplifier's actual reported state.
-  self.read(tag);reported=self.values.get(key)
+  # Cancel can be acknowledged before the amplifier finishes leaving tune mode.
+  # Wait only for GET readbacks; the setter above is never replayed.
+  deadline=time.monotonic()+1.5
+  while True:
+   if self.cancelled():raise ValueError('Connection is closing; confirmation stopped. Control was not repeated.')
+   self.read(tag);reported=self.values.get(key)
+   if self.cancelled():raise ValueError('Connection is closing; confirmation stopped. Control was not repeated.')
+   if name!='cancel_tune' or tag in self.errors or reported==expected:break
+   remaining=deadline-time.monotonic()
+   if remaining<=0:break
+   time.sleep(min(.1,remaining))
   if tag in self.errors or (expected is not None and reported!=expected):
-   return {'status':'unconfirmed','message':'Command sent once; expected state was not confirmed. Check the amplifier.','action':name}
+   message='Command sent once; expected state was not confirmed. Check the amplifier.'
+   if name in ('antenna_1','antenna_2'):
+    message='Antenna selection was not confirmed. Check the amplifier antenna configuration for the current band; the requested antenna may be disabled. Command sent once.'
+   return {'status':'unconfirmed','message':message,'action':name}
   return {'status':'confirmed','message':('Antenna '+str(reported)+' reported.' if name=='antenna_next' else name.replace('_',' ').capitalize()+' confirmed.'),'action':name}

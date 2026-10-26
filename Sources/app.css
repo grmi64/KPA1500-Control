@@ -4,3 +4,5 @@ body.compact main{padding:15px}body.compact .kicker,body.compact h1 span,body.co
 @media(max-width:800px){.layout{grid-template-columns:1fr}.full-only aside{margin-top:15px}main{padding:20px}.metric-head small{display:none}.number strong{font-size:30px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 h1 .operator-callsign{display:inline-block;font-size:13px;letter-spacing:.08em;font-weight:700;color:var(--mint);border:1px solid var(--line);border-radius:6px;padding:4px 7px;margin-left:10px;vertical-align:middle}h1 .operator-callsign[hidden]{display:none}body.compact h1 .operator-callsign{display:inline-block;font-size:10px;margin-left:7px;padding:3px 5px}body.compact h1 .operator-callsign[hidden]{display:none}.station-callsign-setting{display:flex;align-items:center;gap:10px;margin:14px 0}.station-callsign-setting input{width:160px;text-transform:uppercase}
+
+.controls button[aria-pressed="true"]{color:var(--mint);border-color:var(--mint);background:color-mix(in srgb,var(--mint) 14%,var(--panel));font-weight:700;opacity:1}
