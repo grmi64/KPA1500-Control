@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.12
+# KPA1500 Control 0.1.15
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -82,3 +82,13 @@ The amplifier supports one TCP client; close other network controllers before co
 On macOS, allow KPA1500 Control to access the Local Network when prompted. If the first connection fails while granting permission, restart the app and click Connect. Permission is visible under System Settings → Privacy & Security → Local Network.
 
 0.1.9 gives connection-loss and stale-state messages priority over previous operating confirmations.
+
+
+## Local 0.1.14 power controls (hardware validation pending)
+
+Power Off / Power On appears on its own row beneath ATU controls in Full and Compact views. Power Off requires confirmation and fresh RF-off/tuning checks. Explicit setters are sent once. USB Power On wakes the sleeping controller with semicolons, verifies power state and sends ON1 only when needed. Ethernet Power On sends one Wake-on-LAN packet and makes bounded connection/readback attempts; it does not send the USB power-on setter. NET WAKE on LAN, AC and the rear power switch must be enabled. Startup mode follows the amplifier's POWER ON MODE configuration; the app does not alter that setting.
+
+The connected amplifier's MAC is read using MA and saved automatically. Changing the target IP clears the previous MAC; a first-time powered-off amplifier requires manual NET MAC entry. Ethernet wake checks the responding MAC before claiming startup. No wake is sent automatically at app startup or normal reconnect. A lost shutdown connection without power readback is unconfirmed, never treated as proof of shutdown. Offline checks and packaged simulation passed; USB/Ethernet power-cycle hardware acceptance remains pending. No power commands were sent to the real amplifier during development.
+
+
+0.1.15 release: USB and Ethernet power-cycle hardware tests passed with front-panel confirmation and subsequent operator testing. Includes corrected Wake-on-LAN success wording. See RELEASE-0.1.15.md.

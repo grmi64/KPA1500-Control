@@ -36,7 +36,7 @@ class ProtocolTests(unittest.TestCase):
   self.assertTrue(parse('^VG TR_STATE_RX TR_STATE_TX 3T:0 KeyIn:0;')['transmitting'])
  def test_no_operating_writes_on_connect_or_poll(self):
   amp,transport=self.session()
-  self.assertTrue(all(command in ['^I;','^SN;','^RVM;']+['^'+tag+';' for tag in __import__('protocol').FAST+__import__('protocol').SLOW] for command in transport.writes))
+  self.assertTrue(all(command in ['^I;','^SN;','^RVM;','^ON;']+['^'+tag+';' for tag in __import__('protocol').FAST+__import__('protocol').SLOW] for command in transport.writes))
   self.assertEqual(amp.snapshot()['status'],'live')
  def test_controls_verified(self):
   amp,transport=self.session()

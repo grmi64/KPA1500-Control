@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const source=fs.readFileSync('Sources/app.js','utf8'),html=fs.readFileSync('Sources/index.html','utf8');
 const buttons=['antenna_1','antenna_2'].map(action=>({dataset:{action},attrs:{},setAttribute(k,v){this.attrs[k]=v;}}));
-const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id)};
+const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{}});return nodes.get(id)};
 const c={$ ,busy:false,snapshot:null,document:{querySelectorAll:()=>buttons}};vm.createContext(c);
 vm.runInContext(source.slice(source.indexOf('function paintControls()'),source.indexOf('function number(')),c);
 function paint(overrides={},actions=[]){c.snapshot={state:{status:'live',transmitting:false,forward_watts:0,tuning:false,antenna:1,...overrides},actions};c.paintControls();}

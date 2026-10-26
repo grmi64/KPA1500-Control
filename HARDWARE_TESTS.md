@@ -158,3 +158,17 @@ Hardware: initial LIVE Standby, RF off, Ant 1, ATU Bypass on 15m. Clicked Ant 2 
 ### Antenna switching passed — 0.1.11, 2026-10-25
 
 Operator corrected 15m antenna configuration to enable both ports (previously only Ant 2 was enabled). With LIVE Standby and RF off, selected Ant 1, Ant 2, then Ant 1 once each. All three actions confirmed; selected highlight followed reported state. Operator independently confirmed each antenna on the amplifier front panel. Final Ant 1, Standby, ATU Bypass, 0 W, no fault. Evidence: test-evidence/tcp-ant-selectors-0.1.11.json. No power, mode, tuning, radio keying or drive commands sent. Nothing published.
+
+
+### Ethernet power cycle — local 0.1.14, 2026-10-26
+
+Automatic generic MA discovery saved the hardware-reported MAC; freshly read WL reported enabled. Starting LIVE Standby, RF off, tuning idle: one confirmed Power Off command returned powered_off; readings cleared and operating controls disabled. One explicit Power On action sent one Wake-on-LAN packet and bounded connection attempts; same MAC verified, powered_on=true, LIVE Standby, Ant 1, ATU Bypass, 0 W, tuning=false and fault 00. No radio keying, drive-power, mode, antenna or tuning commands sent. Front-panel confirmation requested. USB cycle still pending. Feedback displayed "already powered on" after WOL; local source wording corrected to "Wake-on-LAN startup confirmed" and awaits rebuild. Evidence: test-evidence/tcp-power-cycle-2026-10-26.jsonl. Nothing published.
+
+Operator confirmed the Ethernet test front panel switched off, then back on, and now shows Standby. Ethernet power-cycle hardware acceptance passed.
+
+
+### USB power cycle — local 0.1.14, 2026-10-26
+
+Selected Host PC USB /dev/cu.usbserial-AU05ZR6X at 230400 baud. Fresh LIVE Standby, RF off and tuning idle. One Power Off action confirmed powered_off; readings cleared, controls disabled and USB session remained available. One Power On action confirmed startup; LIVE powered_on=true, Standby, Ant 1, ATU Bypass, 0 W, tuning=false and fault 00. Front-panel confirmation requested. No mode, antenna, tuning, radio-keying or drive commands. Restored original TCP/IP selection and monitoring after test. Evidence: test-evidence/usb-power-cycle-2026-10-26.jsonl. Nothing published.
+
+Operator confirmed USB front panel switched off, then back on, and now shows Standby. USB power-cycle hardware acceptance passed, alongside the previously confirmed Ethernet cycle.
