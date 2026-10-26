@@ -5,3 +5,5 @@ __pycache__/
 .DS_Store
 backups/
 live-usb.png
+
+test-evidence/

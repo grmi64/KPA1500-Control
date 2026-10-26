@@ -55,3 +55,53 @@ with matching readings. OS inspection showed one established TCP connection to
 192.168.0.18:1500 and no owner of the previous USB port. A further native app
 quit/relaunch automatically restored the saved TCP connection to LIVE, without
 manual Connect. No operating actions were invoked.
+
+## TCP Operate/Standby — 2026-10-25
+
+Operator explicitly authorized Operate/Standby using installed 0.1.8 on TCP/IP
+192.168.0.18:1500. Initial fresh telemetry showed Standby, no transmit, 0 W.
+Native app Operate button produced one confirmed action (Operate confirmed),
+with fresh operate=true, transmitting=false, 0 W and fault 00. Native Standby
+button then produced one confirmed action (Standby confirmed). Final fresh
+readback: LIVE, operate=false, transmitting=false, 0 W, fault 00; DXC feed LIVE
+and Standby. Action history shows exactly one confirmed Operate and one
+confirmed Standby for this test. No tuning, power, radio-keying or drive-power
+commands sent. No application/source behavior changed for this test.
+
+## TCP RF power/SWR — 2026-10-25
+
+Operator supplied/stopped RF and selected amplifier mode. Operator front-panel
+comparison: approximately 980 W and SWR 1.1, then returned to Standby.
+Read-only local recording captured 1,147 samples over 294.1 seconds, including
+33 amplified-RF samples: forward 900–993 W, reflected 3–4 W, SWR 1.1.
+DXC active-RF samples showed 900–990 W and SWR 1.1. The two cached feeds refresh
+independently; these ranges are not a claim of identical simultaneous samples.
+All amplifier samples remained LIVE; maximum reported age 0.263 seconds, no
+reported fault. Final app and DXC feeds LIVE, Standby and forward/reflected 0 W.
+No amplifier or radio commands were sent by the observer during this test.
+Evidence: test-evidence/tcp-rf-2026-10-25.jsonl and corresponding summary JSON.
+
+## TCP cable loss and recovery — 2026-10-25
+
+Operator kept radio idle, unplugged amplifier LAN with USB still connected, then
+restored LAN on request. Installed 0.1.8 native app showed ERROR and unknown
+readings; API cleared power, SWR, temperature, operate and transmit state to null.
+All operating/ATU/fault controls disabled. DXC showed error without meter values.
+No fallback to USB occurred. Restoring LAN alone left app disconnected/error;
+previous four completed actions remained unchanged. One explicit native Connect
+restored LIVE TCP readings: Standby, receiving, 0 W, fault 00. DXC also LIVE.
+Connection generation/action history reset, no new operating requests queued.
+No operating, tuning, power or radio commands issued for this test.
+
+Limitation: initial ten-minute recorder expired before cable removal, so exact
+live-to-stale/timeout delay was not captured. Disconnected and recovered states
+are separately saved in test-evidence/tcp-loss-disconnected-2026-10-25.json and
+tcp-loss-restored-2026-10-25.json. UI issue found: previous completed-action text
+(Standby confirmed) masks the disconnection error message; error badge, blank
+readings and control disabling remain correct. The message resets on Connect.
+
+## 0.1.9 timed LAN-loss retest — 2026-10-25
+
+Installed signed 0.1.9 with prior app/settings backup. Recorder sampled cached app and DXC feeds at approximately 0.25-second intervals. After operator unplugged LAN with USB still connected, both feeds cleared readings about 2.58 seconds after the last fresh amplifier sample. App ERROR appeared about 9.52 seconds after that sample; DXC ERROR about 9.77 seconds. Times are relative to the last measured sample, not an independently timed physical unplug. Native UI displayed the connection-closed/reconnect message, unknown readings and all operating controls disabled. The offline regression separately covers priority over a previous completed action.
+
+Operator restored LAN; app remained disconnected with no queued actions. One explicit Connect restored LIVE TCP and DXC readings, Standby, receiving, 0 W and fault 00. No mode, tuning, power, radio-keying or drive-power commands were issued for this retest. Local raw evidence remains excluded from source distributions under test-evidence/.

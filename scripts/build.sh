@@ -12,7 +12,7 @@ cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 import plistlib,sys
 from pathlib import Path
 p=Path(sys.argv[1])/'Contents/Info.plist'
-p.write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.grmi64.KPA1500Control',CFBundleName='KPA1500 Control',CFBundleDisplayName='KPA1500 Control',CFBundleExecutable='KPA1500Control',CFBundlePackageType='APPL',CFBundleShortVersionString='0.1.8',CFBundleVersion='9',CFBundleIconFile='AppIcon.icns',LSMinimumSystemVersion='12.0',NSHighResolutionCapable=True,NSPrincipalClass='NSApplication')))
+p.write_bytes(plistlib.dumps(dict(CFBundleIdentifier='com.grmi64.KPA1500Control',CFBundleName='KPA1500 Control',CFBundleDisplayName='KPA1500 Control',CFBundleExecutable='KPA1500Control',CFBundlePackageType='APPL',CFBundleShortVersionString='0.1.9',CFBundleVersion='10',CFBundleIconFile='AppIcon.icns',LSMinimumSystemVersion='12.0',NSHighResolutionCapable=True,NSPrincipalClass='NSApplication')))
 PY
 codesign --force --deep --sign - "$APP"
 echo "$APP"

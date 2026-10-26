@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.8
+# KPA1500 Control 0.1.9
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -80,3 +80,5 @@ Connection type offers USB, TCP/IP and Simulator. For TCP/IP enter the amplifier
 The amplifier supports one TCP client; close other network controllers before connecting. USB may remain connected. A cooperative local endpoint lock prevents another copy of this implementation from opening the same endpoint. Commands remain paced and checked by the shared protocol/session guards. A dropped TCP connection clears live state and requires an explicit reconnect. No radio keying or drive-power commands were added.
 
 On macOS, allow KPA1500 Control to access the Local Network when prompted. If the first connection fails while granting permission, restart the app and click Connect. Permission is visible under System Settings → Privacy & Security → Local Network.
+
+0.1.9 gives connection-loss and stale-state messages priority over previous operating confirmations.
