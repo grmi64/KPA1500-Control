@@ -74,7 +74,7 @@ class Session:
     if self.protocol.query('I',.6).upper()=='^KPA1500;':
      self.read('SN');self.read('RVM');return
    except TimeoutError:pass
-  raise ValueError('This port did not identify as a KPA1500. Check Host PC USB and baud rate.')
+  raise ValueError('This port did not identify as a KPA1500. Check the amplifier connection and address or USB baud rate.')
  def poll(self,slow=False):
   for tag in FAST+(SLOW if slow else ()):self.read(tag)
  def snapshot(self):

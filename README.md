@@ -1,4 +1,4 @@
-# KPA1500 Control 0.1.7
+# KPA1500 Control 0.1.8
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -20,9 +20,9 @@ Controls: Operate, Standby, next already-enabled antenna, ATU In/Bypass, Tune/Ca
 
 ## Architecture and future integration
 
-`transport.py` owns the byte transport; a future TCP transport can implement the same write/read/close interface. `protocol.py` implements the documented Elecraft protocol and guarded operations. `engine.py` owns the amplifier worker and cached shared state. `server.py` exposes a loopback-only, token-protected service. `index.html`, `app.js`, and `app.css` provide both views; `App.swift` supplies the native window, singleton guard and stay-on-top support.
+`transport.py` implements USB and TCP/IP using the same write/read/close interface. `protocol.py` implements the documented Elecraft protocol and guarded operations. `engine.py` owns the amplifier worker and cached shared state. `server.py` exposes a loopback-only, token-protected service. `index.html`, `app.js`, and `app.css` provide both views; `App.swift` supplies the native window, singleton guard and stay-on-top support.
 
-DX Caliber 0.6.67 can display a read-only accessory widget using the optional local feed while this standalone service continues owning amplifier communication. Embedding an operational panel later would require an explicit authenticated connection and embedding policy. TCP/IP remains planned. There is no dependency on DX Caliber or its CAT scheduler.
+DX Caliber 0.6.67 can display a read-only accessory widget using the optional local feed while this standalone service continues owning amplifier communication. Embedding an operational panel later would require an explicit authenticated connection and embedding policy. TCP/IP uses the same guarded session as USB. There is no dependency on DX Caliber or its CAT scheduler.
 
 Protocol source: [Elecraft KPA1500 Programming Reference](https://ftp.elecraft.com/KPA1500/Manuals%20Downloads/KPA1500ProgrammingReferenceV3.pdf). Implementation is independent; no QK4 source was incorporated.
 
@@ -72,3 +72,11 @@ Window placement update: preserve valid display positions; recover windows after
 ## Release 0.1.7
 
 Consolidates DX Caliber sharing, meter colors, callsign badge and window recovery in a signed, notarized Apple Silicon beta. See RELEASE-0.1.7.md. USB remains the hardware connection; TCP/IP is planned separately.
+
+## TCP/IP connection (0.1.8)
+
+Connection type offers USB, TCP/IP and Simulator. For TCP/IP enter the amplifier's NET IP ADDRESS and command port (normally 1500), then click Connect. IPv4 and IPv6 literals are accepted; enter an address rather than a URL or hostname. USB port and baud are retained when switching connection types. Connect saves the chosen hardware connection. Automatically connect at startup uses that saved type and endpoint, makes one bounded attempt and never replays controls. Sharing with DX Caliber works with either transport.
+
+The amplifier supports one TCP client; close other network controllers before connecting. USB may remain connected. A cooperative local endpoint lock prevents another copy of this implementation from opening the same endpoint. Commands remain paced and checked by the shared protocol/session guards. A dropped TCP connection clears live state and requires an explicit reconnect. No radio keying or drive-power commands were added.
+
+On macOS, allow KPA1500 Control to access the Local Network when prompted. If the first connection fails while granting permission, restart the app and click Connect. Permission is visible under System Settings → Privacy & Security → Local Network.
