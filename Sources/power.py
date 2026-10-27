@@ -23,11 +23,13 @@ def wake(mac,broadcast):
 def wake_connect(config,cancelled,connect,wait):
  if cancelled():raise ValueError('Connection is closing; wake was not sent.')
  wake(config['wake_mac'],config['wake_broadcast'])
- deadline=time.monotonic()+15
+ deadline=time.monotonic()+15;last_error=None
  while not cancelled():
   try:return connect(config['host'],config['tcp_port'])
   except OSError as exc:
+   last_error=exc
    if 'already in use' in str(exc):raise
    if time.monotonic()>=deadline:break
    wait(.5)
- raise OSError('Wake packet sent once; amplifier connection was not confirmed. Check NET WAKE on LAN, MAC address, cabling and rear power switch.')
+ if cancelled():raise ValueError('Connection closed after one wake packet; startup was not confirmed. No automatic retry.')
+ raise OSError('Wake packet sent once; amplifier connection was not confirmed. Check NET WAKE on LAN, MAC address, cabling and rear power switch. Broadcast wake normally requires the amplifier LAN or a configured wake relay. Last TCP connection error: '+str(last_error))
