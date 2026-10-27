@@ -1,0 +1,82 @@
+import json,pathlib,sys,tempfile,threading,time,unittest
+from unittest.mock import patch,Mock
+sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'Sources'))
+from windows_network import targets_from_records
+from windows_preferences import Preferences,validate
+from windows_instance import Instance
+from engine import Controller
+from server import handler_for
+from discovery import Discovery
+from http.server import ThreadingHTTPServer
+
+class NetworkProviderTests(unittest.TestCase):
+ def record(self,**kw):return dict(address='192.0.2.10',prefix=24,gateway='192.0.2.1',metric=10,**kw)
+ def test_default_interface_and_24_cap(self):
+  a=dict(address='10.3.4.10',prefix=16,gateway='10.3.0.1',metric=5)
+  b=self.record();result=targets_from_records([b,a])
+  self.assertEqual(len(result),253);self.assertNotIn('10.3.4.10',result);self.assertTrue(all(x.startswith('10.3.4.') for x in result))
+ def test_narrow_network_never_expands_to_other_subnet(self):
+  result=targets_from_records([dict(address='192.0.2.10',prefix=29,gateway='192.0.2.9',metric=1)])
+  self.assertEqual(result,['192.0.2.9','192.0.2.11','192.0.2.12','192.0.2.13','192.0.2.14'])
+ def test_invalid_routes_fail_closed(self):
+  for changes in ({'prefix':0},{'prefix':32},{'gateway':'198.51.100.1'},{'gateway':'192.0.2.10'},{'address':'127.0.0.1'},{'metric':True},{'address':'not an IP'}):
+   record=self.record();record.update(changes)
+   with self.assertRaises(ValueError):targets_from_records([record])
+ def test_fixed_configuration_command_is_bounded_and_hidden(self):
+  import windows_network
+  with patch('windows_network.subprocess.run',return_value=Mock(stdout=json.dumps([self.record()]))) as run:
+   self.assertEqual(len(windows_network.local_targets()),253)
+   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],5)
+
+class DiscoveryTests(unittest.TestCase):
+ def test_synthetic_discovery_cancel_and_completion_no_io(self):
+  with patch('discovery.local_targets',side_effect=AssertionError('network config read')),patch('discovery.identify',side_effect=AssertionError('device opened')):
+   d=Discovery(offline=True);d.start(['COM10'],230400,1500)
+   self.assertTrue(d.snapshot()['running']);d.stop();d.thread.join(2);self.assertEqual(d.snapshot()['results'],[]);self.assertIn('cancelled',d.snapshot()['message'])
+   d.start([],230400,1500);d.thread.join(2);state=d.snapshot();self.assertEqual(state['checked'],4);self.assertEqual(state['total'],4);self.assertEqual(state['results'],[dict(mode='simulator',demo=True)])
+ def test_real_windows_discovery_queries_tcp_only_and_is_bounded(self):
+  seen=[]
+  def probe(candidate,cancel):seen.append(candidate);return candidate
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',return_value=['192.0.2.1']),patch('discovery.identify',side_effect=probe):
+   d=Discovery();d.start(['COM10'],230400,1500);d.thread.join(2)
+   self.assertEqual([c['mode'] for c in seen],['tcp']);self.assertEqual(d.snapshot()['checked'],1)
+ def test_cancellation_waits_for_active_probe_close_and_skips_queued(self):
+  began=threading.Event();closed=threading.Event()
+  def probe(candidate,cancel):began.set();cancel.wait(2);closed.set();return None
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',return_value=['192.0.2.'+str(i) for i in range(1,100)]),patch('discovery.identify',side_effect=probe):
+   d=Discovery();d.start([],230400,1500);self.assertTrue(began.wait(1));d.stop();d.thread.join(3)
+   self.assertFalse(d.snapshot()['running']);self.assertTrue(closed.is_set());self.assertLess(d.snapshot()['checked'],100)
+
+class PreferenceTests(unittest.TestCase):
+ def test_isolated_atomic_roundtrip_and_validation(self):
+  with tempfile.TemporaryDirectory() as folder:
+   path=pathlib.Path(folder)/'review.window.json';p=Preferences(path)
+   p.save(dict(compact=True,top=True,theme='light',measurement='frequency',callsign='review',sections={'faults':False},full_size=[900,800],position=[-900,20],host='secret',auto_connect=True))
+   self.assertEqual(Preferences(path).snapshot()['callsign'],'REVIEW');self.assertNotIn('host',p.snapshot());self.assertNotIn('auto_connect',p.snapshot());self.assertFalse(path.with_suffix('.tmp').exists())
+   p.save(dict(theme='bad',full_size=[1,1],compact='true'));self.assertTrue(p.snapshot()['compact']);self.assertEqual(p.snapshot()['theme'],'light');self.assertEqual(p.snapshot()['full_size'],[900,800])
+ def test_corrupt_preferences_and_unknown_objects(self):
+  self.assertEqual(validate([]),{})
+  with tempfile.TemporaryDirectory() as folder:
+   path=pathlib.Path(folder)/'view.json';path.write_text('broken');self.assertEqual(Preferences(path).snapshot(),{})
+
+class InstanceTests(unittest.TestCase):
+ def test_metadata_path_is_stable_when_frozen_host_changes_directory(self):
+  self.assertTrue(Instance('relative-review.json').path.is_absolute())
+
+ def test_second_launch_activates_existing_session_and_releases(self):
+  with tempfile.TemporaryDirectory() as folder,patch('endpoint_lock.lock_directory',return_value=pathlib.Path(folder)/'locks'):
+   settings=pathlib.Path(folder)/'settings.json';first=Instance(settings);self.assertTrue(first.acquire());activated=threading.Event();c=Controller(settings,offline_only=True)
+   server=ThreadingHTTPServer(('127.0.0.1',0),handler_for(c,'activation-unit-test',activate=activated.set));thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+   first.publish(f'http://127.0.0.1:{server.server_port}/activation-unit-test/','activation-unit-test')
+   try:
+    second=Instance(settings);self.assertFalse(second.acquire());self.assertTrue(activated.is_set());self.assertIsNone(c.worker);second.close();self.assertTrue(first.path.exists())
+   finally:server.shutdown();server.server_close();thread.join();first.close()
+   self.assertFalse(first.path.exists());third=Instance(settings);self.assertTrue(third.acquire());third.close()
+ def test_activation_metadata_cannot_redirect_token_to_external_host(self):
+  with tempfile.TemporaryDirectory() as folder,patch('endpoint_lock.lock_directory',return_value=pathlib.Path(folder)/'locks'):
+   path=pathlib.Path(folder)/'review.json';first=Instance(path);first.acquire();first.publish('http://example.test/secret/','secret')
+   try:
+    with patch('windows_instance.time.sleep'),patch('windows_instance.http.client.HTTPConnection') as opener:
+     with self.assertRaises(RuntimeError):Instance(path).acquire()
+     opener.assert_not_called()
+   finally:first.close()

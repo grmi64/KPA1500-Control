@@ -1,0 +1,569 @@
+{
+  "schema": 1,
+  "application": "KPA1500 Control Windows Review (offline simulation)",
+  "components": [
+    {
+      "component": "altgraph",
+      "version": "0.17.5",
+      "notices": [
+        "windows/altgraph-LICENSE"
+      ]
+    },
+    {
+      "component": "pefile",
+      "version": "2024.8.26",
+      "notices": [
+        "windows/pefile-LICENSE"
+      ]
+    },
+    {
+      "component": "pywin32-ctypes",
+      "version": "0.2.3",
+      "notices": [
+        "windows/pywin32-ctypes-LICENSE.txt"
+      ]
+    },
+    {
+      "component": "bottle",
+      "version": "0.13.4",
+      "notices": [
+        "windows/bottle-LICENSE"
+      ]
+    },
+    {
+      "component": "cffi",
+      "version": "2.1.1",
+      "notices": [
+        "windows/cffi-LICENSE"
+      ]
+    },
+    {
+      "component": "clr_loader",
+      "version": "0.3.1",
+      "notices": [
+        "windows/clr_loader-LICENSE"
+      ]
+    },
+    {
+      "component": "pycparser",
+      "version": "3.12",
+      "notices": [
+        "windows/pycparser-LICENSE"
+      ]
+    },
+    {
+      "component": "pythonnet",
+      "version": "3.2.1",
+      "notices": [
+        "windows/pythonnet-LICENSE"
+      ]
+    },
+    {
+      "component": "pywebview",
+      "version": "6.2.1",
+      "notices": [
+        "windows/pywebview-LICENSE"
+      ]
+    },
+    {
+      "component": "packaging",
+      "version": "26.3",
+      "notices": [
+        "windows/packaging-LICENSE",
+        "windows/packaging-LICENSE.APACHE",
+        "windows/packaging-LICENSE.BSD"
+      ]
+    },
+    {
+      "component": "setuptools",
+      "version": "84.2.1",
+      "notices": [
+        "windows/setuptools-LICENSE",
+        "windows/setuptools-NOTICE",
+        "windows/MPL-2.0.txt",
+        "windows/fastjsonschema-LICENSE"
+      ]
+    },
+    {
+      "component": "typing_extensions",
+      "version": "4.16.0",
+      "notices": [
+        "windows/typing_extensions-LICENSE"
+      ]
+    },
+    {
+      "component": "proxy_tools",
+      "version": "0.1.0",
+      "notices": [
+        "windows/proxy_tools-LICENSE.txt",
+        "windows/proxy_tools-METADATA.txt"
+      ]
+    },
+    {
+      "component": "CPython Windows",
+      "version": "3.12.14",
+      "notices": [
+        "windows/Python-Windows-LICENSE.txt",
+        "windows/Python-3.12.14-history-and-license.rst"
+      ]
+    },
+    {
+      "component": "OpenSSL",
+      "version": "3.5.8",
+      "notices": [
+        "windows/OpenSSL-3.5.8-LICENSE.txt"
+      ]
+    },
+    {
+      "component": "Expat",
+      "version": "2.8.3",
+      "notices": [
+        "windows/Expat-2.8.3-COPYING"
+      ]
+    },
+    {
+      "component": "libffi, bzip2, liblzma, zlib, mpdecimal",
+      "version": "Python runtime components",
+      "notices": [
+        "LICENSE.libffi.txt",
+        "LICENSE.bzip2.txt",
+        "LICENSE.liblzma.txt",
+        "LICENSE.zlib.txt",
+        "LICENSE.mpdecimal.txt"
+      ]
+    },
+    {
+      "component": "Microsoft.Web.WebView2 SDK",
+      "version": "1.0.3856.49",
+      "notices": [
+        "windows/WebView2-1.0.3856.49-LICENSE.txt",
+        "windows/WebView2-1.0.3856.49-NOTICE.txt"
+      ]
+    },
+    {
+      "component": "PyInstaller",
+      "version": "6.22.3",
+      "notices": [
+        "PyInstaller-COPYING.txt"
+      ]
+    },
+    {
+      "component": "Microsoft Windows runtime components",
+      "version": "As bundled with Python",
+      "notices": [
+        "windows/Python-Windows-LICENSE.txt"
+      ]
+    },
+    {
+      "component": "setuptools vendored packages and validation source",
+      "version": "84.2.1",
+      "notices": [
+        "windows/setuptools-validation-source/NOTICE",
+        "windows/setuptools-validation-source/_validate_pyproject/NOTICE",
+        "windows/setuptools-validation-source/_validate_pyproject/__init__.py",
+        "windows/setuptools-validation-source/_validate_pyproject/error_reporting.py",
+        "windows/setuptools-validation-source/_validate_pyproject/extra_validations.py",
+        "windows/setuptools-validation-source/_validate_pyproject/fastjsonschema_exceptions.py",
+        "windows/setuptools-validation-source/_validate_pyproject/fastjsonschema_validations.py",
+        "windows/setuptools-validation-source/_validate_pyproject/formats.py",
+        "windows/setuptools-validation-source/distutils.schema.json",
+        "windows/setuptools-validation-source/setuptools.schema.json",
+        "windows/setuptools-vendor/autocommand-2.2.2.dist-info/LICENSE",
+        "windows/setuptools-vendor/backports.tarfile-1.2.0.dist-info/LICENSE",
+        "windows/setuptools-vendor/importlib_metadata-8.7.1.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/jaraco.text-4.0.0.dist-info/LICENSE",
+        "windows/setuptools-vendor/jaraco_context-6.1.0.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/jaraco_functools-4.4.0.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/more_itertools-10.8.0.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE.APACHE",
+        "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE.BSD",
+        "windows/setuptools-vendor/platformdirs-4.4.0.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/tomli-2.4.0.dist-info/licenses/LICENSE",
+        "windows/setuptools-vendor/wheel-0.46.3.dist-info/licenses/LICENSE.txt",
+        "windows/setuptools-vendor/zipp-3.23.0.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "component": "pyserial",
+      "version": "3.5",
+      "notices": [
+        "windows/pyserial-LICENSE.txt"
+      ]
+    }
+  ],
+  "files": {
+    "LICENSE.bzip2.txt": "bd5628cc76fb0ebf9c657d1dd4d1a240a1a7b216c31663e7bbf1131c0b70a910",
+    "LICENSE.libffi.txt": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+    "LICENSE.liblzma.txt": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+    "LICENSE.mpdecimal.txt": "f094277cd46e1f6e4d87916cc4b51e22f613d45eb81f48231c3cb7caf8fc8a6a",
+    "LICENSE.zlib.txt": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+    "PyInstaller-COPYING.txt": "2f71515511f67e3102ae9ba0d3ec0d3a513295262dec1fa0ab0bb2e23e9f2a77",
+    "windows/altgraph-LICENSE": "0b9ba1394c0a342806271a7cfafdb69966c4c3446234b9ae4809157fde9ff758",
+    "windows/bottle-LICENSE": "ea11ac832b25e3fa70795533b235d08e958cdc32d7c7326113d4649ecd8b20a7",
+    "windows/cffi-LICENSE": "fccfb7d30ac3feefcb4f158534860379104b17a7d81a3d7c35581f4287bd39bd",
+    "windows/clr_loader-LICENSE": "6deb8c931d402d1fc1731e59c09f9a3d2a608568c7f0a823a2b0d49b03a0d261",
+    "windows/Expat-2.8.3-COPYING": "431dd07ea1ffce7b9e525014bbf923006f129ee28ef5cdffc048f8e3eb39191c",
+    "windows/fastjsonschema-LICENSE": "9ccddf69eb3998a60148debe85b94c5afed53691b6474692e78abcc0a0e544f1",
+    "windows/MPL-2.0.txt": "cde215e5b42363eb28ca2462c4558ff4807b38f383c537624c31e44657ac58f4",
+    "windows/OpenSSL-3.5.8-LICENSE.txt": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+    "windows/packaging-LICENSE": "8ef81e4c883c5ccb2a08026cc74ba3193279dd5149b36839d976c0a896637d87",
+    "windows/packaging-LICENSE.APACHE": "eb3d7b5485466acbd81f2b496f595ab637d2792e268206b27d99e793bdb67549",
+    "windows/packaging-LICENSE.BSD": "67daf15b478dbd91bcd83bff907efff68471d42d2138226b89f039d658d53435",
+    "windows/pefile-LICENSE": "fa09deef47ce9e1134dafeb6c6f94cb89e4cb5310b629a3bc1755e5a75894a7a",
+    "windows/proxy_tools-LICENSE.txt": "ee272658436e12b94632d8758d1500a387afdced846d0b916adcb0e0572f0a1e",
+    "windows/proxy_tools-METADATA.txt": "34f8db57e46ca03c6185c649a15cc52a0c9120f4f781e9b64701044b22a7fc86",
+    "windows/pycparser-LICENSE": "3442c863009a80005fd7f432bf313bde39eece4f169362aba7e71f77ef43a6ff",
+    "windows/pyserial-LICENSE.txt": "f91cb9813de6a5b142b8f7f2dede630b5134160aedaeaf55f4d6a7e2593ca3f3",
+    "windows/Python-3.12.14-history-and-license.rst": "40e3623b07603a84c5993c0726c54a523511284110f22e5bb827c005edeb1bd8",
+    "windows/Python-Windows-LICENSE.txt": "6c88ff6cfdae69dc3caf5c8dd052a65bf83e76827d29ea60b3a459e166b58fa3",
+    "windows/pythonnet-LICENSE": "b06e8c86c0291fde1ebc95cbaada18733e6bde658c3fe59bbf2f3f466535369b",
+    "windows/pywebview-LICENSE": "a17c6015381d572f6f5fc8323526714fa386ea1e2519cb688222ced96f97e907",
+    "windows/pywin32-ctypes-LICENSE.txt": "dfa83b3e2709adfcdb838d9ad55823ca674abb780e60563d9dd9544ccbf785e9",
+    "windows/setuptools-LICENSE": "cb77fc9a5978aea569e8e176c2a7e90e476c156b46402280c305e685fbd6357b",
+    "windows/setuptools-NOTICE": "b8388b09e7166f7f1866759844c41895ffa67b621f06bfce35d7bb5f4f1967d8",
+    "windows/typing_extensions-LICENSE": "343237e4be4e1787bb54019abcd61d48465ac7fc2e12f4183846fa68b8447371",
+    "windows/WebView2-1.0.3856.49-LICENSE.txt": "24deadea987f1c7682753a8cef4e70bde8a13cc65684e06cab9a965469362075",
+    "windows/WebView2-1.0.3856.49-NOTICE.txt": "9dd2e51ad1f27741d0cbf74227d03fecf55c43e3081501f9d7f553b16d33835e",
+    "windows/setuptools-validation-source/distutils.schema.json": "492d12026d7b38657a5c0a7c4c93c89d151add6406ad077d63d528323e69e228",
+    "windows/setuptools-validation-source/NOTICE": "2cc60a3724ab0fc31d54499484ce9b77f5ea2d7406fb7c96522f2654589826bf",
+    "windows/setuptools-validation-source/setuptools.schema.json": "bf8014f0bad845478a9ab9b5a4223dc2ecfe4e94fb171993cf2436a814043f78",
+    "windows/setuptools-validation-source/_validate_pyproject/error_reporting.py": "b36f13e2e3d36b9e61f2bc370aaa40c3061224fe9a48f1ad6919273f6cb03d99",
+    "windows/setuptools-validation-source/_validate_pyproject/extra_validations.py": "1754e9c9bd2b91c3362a4f8968ff81d0701d929fd8b5cdaa7d6dc69882472cb5",
+    "windows/setuptools-validation-source/_validate_pyproject/fastjsonschema_exceptions.py": "08134ab57266605e03a91f036d0a68f3d8e7c5e757bb2e627df41ed7d5ed53a0",
+    "windows/setuptools-validation-source/_validate_pyproject/fastjsonschema_validations.py": "e28a61aa72babcaa040953bc5ebd65c4ed99180d8eca86fb017e3526f8764e12",
+    "windows/setuptools-validation-source/_validate_pyproject/formats.py": "4f52c4fc891b081723cefd19cf5d2c3c362f501193e5d2d4ba5fe5955855da26",
+    "windows/setuptools-validation-source/_validate_pyproject/NOTICE": "b8388b09e7166f7f1866759844c41895ffa67b621f06bfce35d7bb5f4f1967d8",
+    "windows/setuptools-validation-source/_validate_pyproject/__init__.py": "edd6d89da9a9c6080a57e3095843b970f31b4b0259c9703ca7a072a4db18e66e",
+    "windows/setuptools-vendor/autocommand-2.2.2.dist-info/LICENSE": "1aac5c9753c2e8b4f16c2e4634119e796c09d2d5b5175d944f3217d3bbcbdcdc",
+    "windows/setuptools-vendor/backports.tarfile-1.2.0.dist-info/LICENSE": "e7749fa8c07ca368021bbe1c5ca25bd4db4a618aedc394b686fb4f781e6f6a28",
+    "windows/setuptools-vendor/jaraco.text-4.0.0.dist-info/LICENSE": "e7749fa8c07ca368021bbe1c5ca25bd4db4a618aedc394b686fb4f781e6f6a28",
+    "windows/setuptools-vendor/importlib_metadata-8.7.1.dist-info/licenses/LICENSE": "a1e70008f96616bb977c5953265581a9ee4fe38735b30614b49939a73a11e4a7",
+    "windows/setuptools-vendor/jaraco_context-6.1.0.dist-info/licenses/LICENSE": "db3e1ead51c01fe3856890c372c0c618b7fc3a40c3930cc56ebb7b79990aafac",
+    "windows/setuptools-vendor/jaraco_functools-4.4.0.dist-info/licenses/LICENSE": "cb77fc9a5978aea569e8e176c2a7e90e476c156b46402280c305e685fbd6357b",
+    "windows/setuptools-vendor/more_itertools-10.8.0.dist-info/licenses/LICENSE": "2162b6b24a563bf763e00d507e650b2b07b0cd4646efa1e2f62fb99a19f7f85e",
+    "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE": "8ef81e4c883c5ccb2a08026cc74ba3193279dd5149b36839d976c0a896637d87",
+    "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE.APACHE": "eb3d7b5485466acbd81f2b496f595ab637d2792e268206b27d99e793bdb67549",
+    "windows/setuptools-vendor/packaging-26.3.dist-info/licenses/LICENSE.BSD": "67daf15b478dbd91bcd83bff907efff68471d42d2138226b89f039d658d53435",
+    "windows/setuptools-vendor/platformdirs-4.4.0.dist-info/licenses/LICENSE": "1c4c52e973337eb2dae639922cbec15ebba954982e1f2f9b7b197e87d7a8760a",
+    "windows/setuptools-vendor/tomli-2.4.0.dist-info/licenses/LICENSE": "34b59b39e7ba577a1d86924218c71229b163d3bf3903aec784299f725c89d324",
+    "windows/setuptools-vendor/wheel-0.46.3.dist-info/licenses/LICENSE.txt": "92e94e40a744a96bd148c67887218697338d911c4fdc18012c4b5f9aa3970061",
+    "windows/setuptools-vendor/zipp-3.23.0.dist-info/licenses/LICENSE": "cb77fc9a5978aea569e8e176c2a7e90e476c156b46402280c305e685fbd6357b",
+    "README.txt": "d7e0539cf91a86b3fab855c9bd4445ffa1459cb238c03e342ad4216979167815"
+  },
+  "binaries": {
+    "api-ms-win-core-console-l1-1-0.dll": {
+      "sha256": "015bd08815c7b934a8952c3a7578e9ce59f21136e8a880d42bbd414bec2c6058",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-datetime-l1-1-0.dll": {
+      "sha256": "5534812cdbdae94ba45cb216e5eb9af686b853948df54365103555abbbaf9d9a",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-debug-l1-1-0.dll": {
+      "sha256": "837d2b1b2cd03e03fc6ccb050698b6b5763af17c201304872342a5eae9e0a2d2",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-errorhandling-l1-1-0.dll": {
+      "sha256": "de43b165f568c276c00e95acd454e3092f352a18e95874595f4f4658c06d2ec7",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-fibers-l1-1-0.dll": {
+      "sha256": "3cebc45bf479ad74cfabf2c6bfd4994d7ad639ed1221025981d19cedf9ce0416",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-fibers-l1-1-1.dll": {
+      "sha256": "5ef70308bcca628ce6b0e2856b15b1c7ae340c3f9bbbc4c1071d8c191a34a5c3",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-file-l1-1-0.dll": {
+      "sha256": "250ac829f2617bcac1c6e5b8c4f630462e20765863ba573526a3e11bbfb94a9a",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-file-l1-2-0.dll": {
+      "sha256": "ae14079a114733f60ce87b92cba42acd8083c2cd67594e53bc37dc0b97a4b465",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-file-l2-1-0.dll": {
+      "sha256": "914bf26a298713119477ea0a8e7bd43171b91344ebe24fb47ad77c49686e3d87",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-handle-l1-1-0.dll": {
+      "sha256": "ab5489955e371b15f77906c08ec3c7affe2c7a46a08c514ca628768b4478974b",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-heap-l1-1-0.dll": {
+      "sha256": "c70f9644d8377fa39c5b71f2e9734c1400d7598904fdeb772e8502099982dcb7",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-interlocked-l1-1-0.dll": {
+      "sha256": "f8129710188e407bb0e6f46d30aeba277d67b947ece5fe09e883fde2323f3ae6",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-kernel32-legacy-l1-1-1.dll": {
+      "sha256": "5200b16cb2ddc61cfc07373a9a84aa85a3ab50806ca96c879c883275832944c1",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-libraryloader-l1-1-0.dll": {
+      "sha256": "48786fb88b001dcd1f63acea903d3ca9cc0b3060d5a325e3f2f3cbc3bfd53166",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-localization-l1-2-0.dll": {
+      "sha256": "9ec3898f7eba91faa28b51616c211a2689e3a13aeef8de6e13cb674e49d689eb",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-memory-l1-1-0.dll": {
+      "sha256": "3a6cbc524c99e1cd80d5368f5601402a37ad602528b1ab628093573ef638eb3b",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-namedpipe-l1-1-0.dll": {
+      "sha256": "97145ef89c44949fcf0f04ac834a8bc7d687ef49ee73ae9fc32f3c11136b7201",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-processenvironment-l1-1-0.dll": {
+      "sha256": "8bc7c10b1851aea644e9c9f381cdb935e091fee6b0be3d3aedc6fffaac96adb7",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-processthreads-l1-1-0.dll": {
+      "sha256": "d8030b777617c71f0f94564607699dbf7561487d779db9756aed378c5675213f",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-processthreads-l1-1-1.dll": {
+      "sha256": "f5e676713340f73a03a3d41a6ec9883b431da7d16c7f07bd0a920fb80e6c0753",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-profile-l1-1-0.dll": {
+      "sha256": "f023d47e44d3eea6b0743580f57e8c6ba81e79d5ebfa7da26250076c647b980e",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-rtlsupport-l1-1-0.dll": {
+      "sha256": "9746d8930704153578a628c010638a5f818ffe5a927e25591b108e256dc6afca",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-string-l1-1-0.dll": {
+      "sha256": "7c53ae24c982d16ffd1bf7f918d115b11b7f30e57bc7feaa18cb9781e4abb926",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-synch-l1-1-0.dll": {
+      "sha256": "56d9d62ca5dba79a6581b8d574a7d8b2a64a5ecb71e47dcf06ed0285708b1859",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-synch-l1-2-0.dll": {
+      "sha256": "f6482bbec5612c39ecb4822787a333f2b7570f7a5f922a4059be41ba957bb372",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-sysinfo-l1-1-0.dll": {
+      "sha256": "272d02765fdd3582618236c2d309abba069642f9bc1062ede069d0c144e17007",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-sysinfo-l1-2-0.dll": {
+      "sha256": "8a0900788859d0eb51c2f48f50cc6ed376a120b518100fa20e11d7702ccde260",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-timezone-l1-1-0.dll": {
+      "sha256": "ff35de6c03812b332e140f17dade25c5dd4775156da9eeb1eaae3fddd27236ec",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-core-util-l1-1-0.dll": {
+      "sha256": "191ef3e98641a57296f19d572d8eb62489470ff1ef6030d136af170c2f835173",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-conio-l1-1-0.dll": {
+      "sha256": "54ee5ec719a051496ff60aa00dbeaa94b9a7d2cdac27fe9b7317f1a666b6a2aa",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-convert-l1-1-0.dll": {
+      "sha256": "8b94662429171019fcd63c70bbf2095a075170599704a5e7dcdbe3da13f3a429",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-environment-l1-1-0.dll": {
+      "sha256": "39e5929593709e8af3bc9e0a75ec1155778d6f4a247f4cdfc58928ad6db88434",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-filesystem-l1-1-0.dll": {
+      "sha256": "5a8ecebac32edf4e1f3c5c6c1c8ea1a1add6cda4f9c9cb26f752fb295bea6865",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-heap-l1-1-0.dll": {
+      "sha256": "c71080cbcb43bf1f8f3e391deb12a582eb0abefc80946f340675a2c616e4feb4",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-locale-l1-1-0.dll": {
+      "sha256": "6c68648e524187e03c4ad9aaa4a99113c6ee9f29fb39cc0ed93f951975138e63",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-math-l1-1-0.dll": {
+      "sha256": "d4fbcccbe29371cbce431e43b2eb4f7ba9a6f04a3d740a071f02457a505e9dc8",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-process-l1-1-0.dll": {
+      "sha256": "47c1935942e3ac0812e4dcf18c0e265e565f0194a3349111c299712f5565f7ac",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-runtime-l1-1-0.dll": {
+      "sha256": "72adc1b3677e0814d9c4ebf0964000e84bb2acf67336c8963061665e44f78029",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-stdio-l1-1-0.dll": {
+      "sha256": "900afc3989673c9bb1a687ed38c192f46db9e6ba6d11a668898a539e7fc23798",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-string-l1-1-0.dll": {
+      "sha256": "fcf12466cc12fd3b73611fc0763a5a1f9d44e90349513c34a0c83b0f36421793",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-time-l1-1-0.dll": {
+      "sha256": "886e57c4a6adb299b38f02945369f590a67da4e79a798359fc60aaa067212d7c",
+      "component": "Microsoft Windows runtime components"
+    },
+    "api-ms-win-crt-utility-l1-1-0.dll": {
+      "sha256": "5f8f26b216ade615b67a41f6fbbb910972fc6153315a65bb8f09912be50215b1",
+      "component": "Microsoft Windows runtime components"
+    },
+    "libcrypto-3-x64.dll": {
+      "sha256": "587c56108d7af19b02ff8fa785c9df703af66a0e8e2bd66031870ff4000bb6a9",
+      "component": "OpenSSL"
+    },
+    "libffi-8.dll": {
+      "sha256": "f5fbc815520d987431124b1d2a79f687d8166a1b6cec205e03f9a9d51ea3d380",
+      "component": "libffi, bzip2, liblzma, zlib, mpdecimal"
+    },
+    "libssl-3-x64.dll": {
+      "sha256": "f77484cd42cfcee649abd12867d0a26b1bf5c171c1ac80a0aa7c1083c2e58e10",
+      "component": "OpenSSL"
+    },
+    "pyexpat.pyd": {
+      "sha256": "9d31f81b7ae59851794c496b920dde678b12b812748aa7570ebe4a50c9d10ea0",
+      "component": "CPython Windows"
+    },
+    "python312.dll": {
+      "sha256": "886fa6b89e09ca6c87599c802402fdca160e06b2fa9c658f6fe91ed926f63e1f",
+      "component": "CPython Windows"
+    },
+    "select.pyd": {
+      "sha256": "0fe0f9261b247f8405250c8ad5e2a0b42e88205fc8b095224b796fa69bc14d95",
+      "component": "CPython Windows"
+    },
+    "ucrtbase.dll": {
+      "sha256": "3239227d27667ba20d10a880751924e5719de0078f9fce232d149d383f7681f6",
+      "component": "Microsoft Windows runtime components"
+    },
+    "unicodedata.pyd": {
+      "sha256": "06c8c710869f7ab725f1e47dd2b7d6578fa865eab97aa1210a423380f2cc4c74",
+      "component": "CPython Windows"
+    },
+    "VCRUNTIME140.dll": {
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+      "component": "Microsoft Windows runtime components"
+    },
+    "VCRUNTIME140_1.dll": {
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+      "component": "Microsoft Windows runtime components"
+    },
+    "_asyncio.pyd": {
+      "sha256": "6d86fefd411bac347ac52d2bb06379b06d47cd8ac3e81d425b8559d53343e197",
+      "component": "CPython Windows"
+    },
+    "_bz2.pyd": {
+      "sha256": "538d21186927914039c42fe2473aaf052abadbde9fc373883c5d848aecc8a62c",
+      "component": "CPython Windows"
+    },
+    "_cffi_backend.cp312-win_amd64.pyd": {
+      "sha256": "9af5e4f68a41f26b726f2e9424f9d58a4f5666189f6a48be95f406b257102aec",
+      "component": "cffi"
+    },
+    "_ctypes.pyd": {
+      "sha256": "94f5e1801f982c86c1e3121d359f198b303a555668d60a42618e6e94d7d3e580",
+      "component": "CPython Windows"
+    },
+    "_decimal.pyd": {
+      "sha256": "8e2abfa85936c606d5f08accf5072823eb452308db4dae2f8bf41eab16c7fbfb",
+      "component": "CPython Windows"
+    },
+    "_elementtree.pyd": {
+      "sha256": "0fcc9c1e05d47bf2c5b492e42220ba668f9097c249042cb4260e25b808801367",
+      "component": "CPython Windows"
+    },
+    "_hashlib.pyd": {
+      "sha256": "00f94f34de2637c87dba0209ef22d728e90fa519ae46bde39df60df725dff496",
+      "component": "CPython Windows"
+    },
+    "_lzma.pyd": {
+      "sha256": "85a41379ef09827ae55f28fd567be791fa50fce35a69dbb5a71288b2d817d424",
+      "component": "CPython Windows"
+    },
+    "_multiprocessing.pyd": {
+      "sha256": "180212b6055a51950e2169e7468713f7a12cb6d406550265ab0db2e93f377fef",
+      "component": "CPython Windows"
+    },
+    "_overlapped.pyd": {
+      "sha256": "8be3fbd1e1de1e5af58db5b15bf657085b8d01aee3e071fdb39cdf30aa756742",
+      "component": "CPython Windows"
+    },
+    "_queue.pyd": {
+      "sha256": "0ab4148d0f53e4257d9a4f2d18da151167e90694ae3cdb4809b5a53979cabed6",
+      "component": "CPython Windows"
+    },
+    "_socket.pyd": {
+      "sha256": "0313f76c51107429703e1de6512f66f748a61a65d7f01c063d13c44ebf8660d0",
+      "component": "CPython Windows"
+    },
+    "_ssl.pyd": {
+      "sha256": "a524c08819e4e4e6b186e8686a6a091f17616a599b3f825bde60e05919f097fb",
+      "component": "CPython Windows"
+    },
+    "_uuid.pyd": {
+      "sha256": "f1b6cf9efa0169ce68854766965ec4ccf27a465df27ebc788a873e533364f342",
+      "component": "CPython Windows"
+    },
+    "_wmi.pyd": {
+      "sha256": "fac8e2ce1e839ee0f94fb8a77f6a7b518f1d00d84fd930c6b0d3156c219501f8",
+      "component": "CPython Windows"
+    },
+    "clr_loader/ffi/dlls/amd64/ClrLoader.dll": {
+      "sha256": "07f62bcb1b70320f221ffb2cfc5ce6133815195f3e7cdb8d833222506188c2ac",
+      "component": "clr_loader"
+    },
+    "clr_loader/ffi/dlls/x86/ClrLoader.dll": {
+      "sha256": "3128381d133f4ff746add70100cfef713ce2d78f2b12c02ec24ec453c5dfab0d",
+      "component": "clr_loader"
+    },
+    "pythonnet/runtime/Python.Runtime.dll": {
+      "sha256": "2ebd4492e28442ef1f1af587afe5b3a090c2ebfa220758ded4f1450f2a27f13a",
+      "component": "pythonnet"
+    },
+    "webview/lib/Microsoft.Web.WebView2.Core.dll": {
+      "sha256": "8219a3135436c147f8eb02fb831e99596103eebc18b6d7b794ca93f4c67018a2",
+      "component": "Microsoft.Web.WebView2 SDK"
+    },
+    "webview/lib/Microsoft.Web.WebView2.WinForms.dll": {
+      "sha256": "c48f8d729dc531288d2c53a6241effe7922ed1b947850b2442008a945c098c48",
+      "component": "Microsoft.Web.WebView2 SDK"
+    },
+    "webview/lib/pywebview-android.jar": {
+      "sha256": "3f9d3eeeda09ce58badbd742a981a463c067c339c8b4e70b404c00ebb4ec73a3",
+      "component": "pywebview"
+    },
+    "webview/lib/WebBrowserInterop.x64.dll": {
+      "sha256": "f6a646470f0e1058224a52e8e2e217501dca46939b30bfc9a5dd4dcdd43f088d",
+      "component": "pywebview"
+    },
+    "webview/lib/WebBrowserInterop.x86.dll": {
+      "sha256": "4e527297fbea7c5a0419f3a6af307c2681787beb0bf0ef3fea849a7fd85a08dc",
+      "component": "pywebview"
+    },
+    "webview/lib/runtimes/win-arm64/native/WebView2Loader.dll": {
+      "sha256": "0937030efc718f3da77c5e0978fb5046e381d0bb7b01acaad31a535a1b588a33",
+      "component": "Microsoft.Web.WebView2 SDK"
+    },
+    "webview/lib/runtimes/win-x64/native/WebView2Loader.dll": {
+      "sha256": "eb5335edeaa6f2122c044e82aab2351dc8c9b4e0fe5e578c71922fb61be285e7",
+      "component": "Microsoft.Web.WebView2 SDK"
+    },
+    "webview/lib/runtimes/win-x86/native/WebView2Loader.dll": {
+      "sha256": "04814b2c59314c6452d61b821a4a3a5c5f8e8577b55b985f6a7a4b59f8907ec5",
+      "component": "Microsoft.Web.WebView2 SDK"
+    }
+  },
+  "notice_hash_format": "SHA-256 of LF-normalized text; binary hashes remain byte-exact"
+}

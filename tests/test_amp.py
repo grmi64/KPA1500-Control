@@ -136,13 +136,14 @@ class PortProtectionTests(unittest.TestCase):
  def test_cooperative_lock_excludes_second_controller(self):
   from port_lock import PortLock
   with tempfile.TemporaryDirectory() as directory,patch('port_lock.Path.home',return_value=pathlib.Path(directory)):
-   a=PortLock('/dev/cu.unit-test');b=PortLock('/dev/cu.unit-test')
+   a=PortLock(('COM234' if sys.platform=='win32' else '/dev/cu.unit-test'));b=PortLock(('COM234' if sys.platform=='win32' else '/dev/cu.unit-test'))
    with patch.object(a,'check_owners'),patch.object(b,'check_owners'):
     a.acquire()
     try:
      with self.assertRaises(OSError):b.acquire()
     finally:a.release()
     b.acquire();b.release()
+ @unittest.skipIf(sys.platform=="win32","POSIX pseudo-terminal only; Windows fake-serial and endpoint exclusion tests cover the adapter.")
  def test_kernel_exclusivity_on_test_terminal(self):
   import pty,termios
   from port_lock import exclusive
@@ -162,6 +163,7 @@ class DisconnectGuardTests(unittest.TestCase):
   self.assertNotIn('^OS1;',transport.writes)
 
 class ShutdownTests(unittest.TestCase):
+ @unittest.skipIf(sys.platform=="win32","Windows TerminateProcess is not SIGTERM; native host graceful-close test is separate.")
  def test_service_sigterm_exits_with_connected_reader_and_queued_state(self):
   with tempfile.TemporaryDirectory() as directory:
    for _ in range(3):
@@ -185,16 +187,16 @@ class StartupTests(unittest.TestCase):
    path=pathlib.Path(directory)/'settings.json';controller=Controller(path)
    with patch.object(controller,'connect') as connect:
     controller.startup();connect.assert_not_called()
-   controller.save_settings({'auto_connect':True,'port':'/dev/cu.unit-test','baud':230400})
+   controller.save_settings({'auto_connect':True,'port':('COM234' if sys.platform=='win32' else '/dev/cu.unit-test'),'baud':230400})
    self.assertIsNone(controller.worker)
    restored=Controller(path)
    with patch.object(restored,'connect',side_effect=OSError('Port unavailable')) as connect:
     restored.startup();connect.assert_called_once();self.assertEqual(connect.call_args.args[0]['mode'],'usb');self.assertEqual(restored.state['status'],'error')
-   restored.save_settings({'auto_connect':False,'port':'/dev/cu.unit-test','baud':230400})
+   restored.save_settings({'auto_connect':False,'port':('COM234' if sys.platform=='win32' else '/dev/cu.unit-test'),'baud':230400})
    self.assertFalse(Controller(path).config['auto_connect'])
  def test_startup_setting_rejects_missing_port_and_invalid_values(self):
   with tempfile.TemporaryDirectory() as directory:
    controller=Controller(pathlib.Path(directory)/'settings.json')
-   for value in ({'auto_connect':True,'port':''},{'auto_connect':'true','port':'/dev/cu.test'},{'auto_connect':True,'port':'/dev/cu.x/../radio'},{'auto_connect':True,'port':'/dev/cu.test','baud':1}):
+   for value in ({'auto_connect':True,'port':''},{'auto_connect':'true','port':('COM235' if sys.platform=='win32' else '/dev/cu.test')},{'auto_connect':True,'port':'/dev/cu.x/../radio'},{'auto_connect':True,'port':('COM235' if sys.platform=='win32' else '/dev/cu.test'),'baud':1}):
     with self.assertRaises(ValueError):controller.save_settings(value)
    self.assertIsNone(controller.worker)

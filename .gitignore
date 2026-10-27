@@ -10,3 +10,5 @@ test-evidence/
 
 .tmp/
 .venv/
+
+build/

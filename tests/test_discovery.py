@@ -26,7 +26,7 @@ class Tests(unittest.TestCase):
  def test_local_scope(self):
   class Result:
    def __init__(self,stdout):self.stdout=stdout
-  with patch('discovery.subprocess.run',side_effect=[Result(' interface: en0\n'),Result('192.168.1.10'),Result('255.255.0.0')]):
+  with patch('discovery.WINDOWS',False),patch('discovery.subprocess.run',side_effect=[Result(' interface: en0\n'),Result('192.168.1.10'),Result('255.255.0.0')]):
    targets=local_targets();self.assertEqual(len(targets),253);self.assertNotIn('192.168.1.10',targets);self.assertTrue(all(h.startswith('192.168.1.') for h in targets))
  def test_no_automatic_connect(self):
   with patch('discovery.local_targets',return_value=['192.168.1.2']),patch('discovery.identify',side_effect=lambda c,stop:c):

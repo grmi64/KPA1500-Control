@@ -1,10 +1,13 @@
 """Byte transport boundary: USB and TCP share the same paced command/reply contract."""
-import os,select,termios,time
+import os,select,time
+from platform_paths import WINDOWS,serial_port
+from endpoint_lock import EndpointLock
+if not WINDOWS:import termios
 from port_lock import PortLock,exclusive
 BAUDS=(4800,9600,19200,38400,57600,115200,230400)
-class SerialTransport:
+class PosixSerialTransport:
  def __init__(self,port,baud):
-  if not isinstance(port,str) or not port.startswith('/dev/cu.') or '/' in port[8:]:raise ValueError('Choose a /dev/cu. USB port.')
+  port=serial_port(port)
   if baud not in BAUDS:raise ValueError('Unsupported baud rate.')
   self.fd=None;self.old=None;self.guard=PortLock(port)
   try:
@@ -46,16 +49,10 @@ def tcp_endpoint(host,port):
 class TCPTransport:
  """One bounded TCP stream; same command framing and guards as USB."""
  def __init__(self,host,port):
-  import socket,fcntl,hashlib
-  from pathlib import Path
-  host,port=tcp_endpoint(host,port);self.sock=None;self.lease=None
-  folder=Path.home()/'Library/Application Support/com.grmi64.StationInstruments/port-locks'
-  folder.mkdir(parents=True,exist_ok=True,mode=0o700)
-  key=hashlib.sha256(('tcp:'+host+':'+str(port)).encode()).hexdigest()
+  import socket
+  host,port=tcp_endpoint(host,port);self.sock=None;self.lease=EndpointLock('tcp:'+host+':'+str(port))
   try:
-   self.lease=os.open(str(folder/(key+'.lock')),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
-   try:fcntl.flock(self.lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
-   except BlockingIOError:raise OSError('This amplifier TCP endpoint is already in use by another controller.') from None
+   self.lease.acquire()
    self.sock=socket.create_connection((host,port),timeout=2)
    self.sock.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,1);self.sock.setblocking(False)
   except BaseException:self.close();raise
@@ -81,4 +78,34 @@ class TCPTransport:
   return b''
  def close(self):
   if self.sock is not None:self.sock.close();self.sock=None
-  if self.lease is not None:os.close(self.lease);self.lease=None
+  if self.lease is not None:self.lease.release();self.lease=None
+
+class WindowsSerialTransport:
+ """pyserial uses exclusive CreateFile handles on Windows; no POSIX select."""
+ def __init__(self,port,baud,serial_factory=None):
+  port=serial_port(port)
+  if baud not in BAUDS:raise ValueError('Unsupported baud rate.')
+  self.serial=None;self.guard=PortLock(port)
+  try:
+   self.guard.acquire()
+   if serial_factory is None:
+    try:from serial import Serial
+    except ImportError:raise OSError('USB support requires the bundled pyserial runtime.') from None
+    serial_factory=Serial
+   self.serial=serial_factory(port=port,baudrate=baud,timeout=.05,write_timeout=.5)
+   self.serial.reset_input_buffer()
+  except BaseException:self.close();raise
+ def write(self,data):
+  if self.serial is None:raise OSError('USB connection is closed.')
+  sent=self.serial.write(data)
+  if sent!=len(data):raise TimeoutError('USB write was incomplete; command will not be repeated.')
+ def read(self,timeout):
+  if self.serial is None:raise OSError('USB connection is closed.')
+  self.serial.timeout=max(0,min(timeout,.25))
+  return self.serial.read(max(1,min(4096,self.serial.in_waiting)))
+ def close(self):
+  try:
+   if self.serial is not None:self.serial.close()
+  finally:self.serial=None;self.guard.release()
+
+SerialTransport=WindowsSerialTransport if WINDOWS else PosixSerialTransport

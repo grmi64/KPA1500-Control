@@ -1,5 +1,26 @@
 'use strict';
-const $=id=>document.getElementById(id),native=window.webkit?.messageHandlers?.displayWindow;
+const $=id=>document.getElementById(id);let native=window.webkit?.messageHandlers?.displayWindow;
+// pywebview executes bridge calls on independent Python threads. Snapshot each
+// update now and serialize both native display changes and persisted preferences.
+let nativeUpdates=Promise.resolve(),nativeClosing=false,nativeSaveError=null;
+function beginNativeClose(){
+ // A later Close retries a previously failed preference write once; it never
+ // retries an amplifier operation. Freeze additional UI changes after queuing.
+ if(nativeSaveError!==null&&!nativeClosing)postWindowsPreferences({compact:prefs.compact===true,alwaysOnTop:prefs.top===true});
+ nativeClosing=true;document.body.inert=true;
+ return nativeUpdates.then(()=>({ready:nativeSaveError===null,error:nativeSaveError}));
+}
+function cancelNativeClose(error){nativeClosing=false;document.body.inert=false;message(error||'Preferences could not be saved. The app remains open.',true);}
+function postWindowsPreferences(options){
+ if(nativeClosing)return nativeUpdates;
+ const display={...options},saved=JSON.parse(JSON.stringify(prefs));
+ nativeUpdates=nativeUpdates.catch(()=>{}).then(async()=>{
+  await window.pywebview.api.display_window(display);
+  await window.pywebview.api.save_preferences(saved);nativeSaveError=null;
+ }).catch(error=>{nativeSaveError=error.message;message('Window preferences could not be saved: '+error.message,true);});
+ return nativeUpdates;
+}
+window.addEventListener?.('pywebviewready',async()=>{const restored=await window.pywebview.api.load_preferences();prefs={...prefs,...restored};native={postMessage:postWindowsPreferences};applyView();if(snapshot)paint();const about=document.createElement('button');about.textContent='About';about.id='windowsAbout';about.onclick=()=>window.pywebview.api.show_about();document.querySelector('.view-toolbar').appendChild(about);$('connectionHint').textContent='USB ports are listed without identification probes. Select the amplifier explicitly.';$('discoveryHelp').textContent='USB: use Refresh and explicitly select the Host PC COM port; no automatic USB probes. TCP: at most one local /24 on the default IPv4 interface; no routed scans. This review simulates discovery without network access.';$('discoveryStatus').textContent='Offline review: discovery results are simulated; no USB devices or network are scanned.';});
 let prefs={compact:false,top:false,theme:'dark',callsign:'',measurement:'reflected',sections:{}},snapshot=null,busy=false,polling=false,initialized=false,lastAction=null,lastWakeMAC='';
 try{prefs={...prefs,...JSON.parse(localStorage.getItem('kpa1500-view')||'{}')};}catch{}
 prefs.sections=prefs.sections&&typeof prefs.sections==='object'?prefs.sections:{};
@@ -43,7 +64,8 @@ function paintMode(state){const mode=state.status==='live'?(state.operate===true
 function paint(){
  if(!snapshot)return;const state=snapshot.state,live=state.status==='live';
  if(snapshot.connection){const savedMAC=snapshot.connection.wake_mac||'';if(savedMAC!==lastWakeMAC&&document.activeElement!==$('wakeMac')&&(!$('wakeMac').value||$('wakeMac').value===lastWakeMAC))$('wakeMac').value=savedMAC;lastWakeMAC=savedMAC;}
-$('connectionStatus').textContent=state.demo?'SIMULATOR':live?'CONNECTED':state.status.toUpperCase();$('connectionStatus').dataset.state=state.status;$('demoBanner').hidden=!state.demo;
+const simulated=snapshot.offline_only===true||state.demo===true;
+$('connectionStatus').textContent=simulated?'SIMULATOR':live?'CONNECTED':state.status.toUpperCase();$('connectionStatus').dataset.state=state.status;$('demoBanner').hidden=!simulated;
  number('forward',live?state.forward_watts:null,'',0);paintMeasurement(state);number('temperature',state.temperature_c,'',0);const rf=live&&state.forward_watts>0&&state.swr>=1;number('swr',rf?state.swr:null,'',2);$('swrHint').textContent=!live?'WAITING':!rf?'NO RF':state.swr>2.1?'HIGH SWR':state.swr>=1.5?'ELEVATED':'VALID RF';
  progress('forwardBar',state.forward_watts,1900);progress('swrBar',rf?state.swr-1:null,4);progress('temperatureBar',state.temperature_c,100);for(const [id,bar,kind,value] of [['forward','forwardBar','power',live?state.forward_watts:null],['temperature','temperatureBar','temperature',live?state.temperature_c:null],['swr','swrBar','swr',rf?state.swr:null]])KPAMeterColors.apply($(id),$(bar),kind,value,prefs.theme);$('forwardBar').parentElement.setAttribute('aria-valuenow',String(state.forward_watts||0));
  paintMode(state);$('antenna').textContent='ANT '+(state.antenna??'—');$('atu').textContent=state.tuning?'ATU TUNING':state.atu_enabled===true?'ATU ENABLED':state.atu_enabled===false?'ATU BYPASS':'ATU —';$('band').textContent=state.band||'BAND —';$('txState').textContent=state.transmitting===true?'TRANSMITTING':state.transmitting===false?'RECEIVING':'RX/TX UNKNOWN';$('txState').dataset.tx=String(state.transmitting);
@@ -64,8 +86,8 @@ applyView();poll();
 let discovered=[],discoveryTimer=null;
 const discoveryHelp='Find your KPA1500 using its USB cable or your local network. After the search, choose it from the list and click Connect.';
 function discoveryBusy(running){$('discoveryProgress').hidden=!running;$('discover').disabled=running;$('cancelDiscovery').hidden=!running;}
-async function showDiscovery(data){discoveryBusy(data.running);discovered=data.results||[];$('discoveryStatus').textContent=data.message||discoveryHelp;$('discover').disabled=data.running;$('cancelDiscovery').hidden=!data.running;const saved=$('discoveryResults').value;$('discoveryResults').replaceChildren(...[null,...discovered].map((r,i)=>{const o=document.createElement('option');o.value=r?String(i-1):'';o.textContent=!r?'Select amplifier…':r.mode==='usb'?'KPA1500 · USB · '+r.port+' · '+r.baud+' baud':'KPA1500 · TCP/IP · '+r.host+':'+r.tcp_port;return o;}));$('discoveryResults').value=saved;if(data.running)discoveryTimer=setTimeout(readDiscovery,500);}
+async function showDiscovery(data){discoveryBusy(data.running);discovered=data.results||[];$('discoveryStatus').textContent=data.message||discoveryHelp;$('discover').disabled=data.running;if(data.running&&Number.isInteger(data.total))$('discoveryStatus').textContent+=(data.demo?' Simulated ':' ')+data.checked+'/'+data.total+' checked.';$('cancelDiscovery').hidden=!data.running;const saved=$('discoveryResults').value;$('discoveryResults').replaceChildren(...[null,...discovered].map((r,i)=>{const o=document.createElement('option');o.value=r?String(i-1):'';o.textContent=!r?'Select amplifier…':r.demo?'Simulated KPA1500 · no hardware':r.mode==='usb'?'KPA1500 · USB · '+r.port+' · '+r.baud+' baud':'KPA1500 · TCP/IP · '+r.host+':'+r.tcp_port;return o;}));$('discoveryResults').value=saved;if(data.running)discoveryTimer=setTimeout(readDiscovery,500);}
 async function readDiscovery(){try{await showDiscovery(await api('discovery'));}catch(e){$('discoveryStatus').textContent='Unable to read scan progress. Retrying…';discoveryTimer=setTimeout(readDiscovery,1000);}}
 $('discover').onclick=async()=>{clearTimeout(discoveryTimer);discoveryBusy(true);$('discoveryStatus').textContent='Starting discovery…';try{await showDiscovery(await api('discover',{baud:Number($('baud').value),tcp_port:Number($('tcpPort').value)}));}catch(e){discoveryBusy(false);$('discoveryStatus').textContent=e.message;}};
 $('cancelDiscovery').onclick=async()=>{try{await api('cancel-discovery',{});$('discoveryStatus').textContent='Cancelling discovery…';}catch(e){$('discoveryStatus').textContent=e.message;}};
-$('discoveryResults').onchange=()=>{const index=$('discoveryResults').value,r=index===''?null:discovered[Number(index)];if(!r)return;$('connectionType').value=r.mode;if(r.mode==='usb'){if(!Array.from($('port').options).some(o=>o.value===r.port)){const o=document.createElement('option');o.value=r.port;o.textContent=r.port;$('port').appendChild(o);}$('port').value=r.port;$('baud').value=String(r.baud);}else{$('host').value=r.host;$('tcpPort').value=String(r.tcp_port);$('wakeMac').value='';}$('connectionType').onchange();$('discoveryStatus').textContent='Selected. Click Connect when ready.';};
+$('discoveryResults').onchange=()=>{const index=$('discoveryResults').value,r=index===''?null:discovered[Number(index)];if(!r)return;$('connectionType').value=r.mode;if(r.mode==='usb'){if(!Array.from($('port').options).some(o=>o.value===r.port)){const o=document.createElement('option');o.value=r.port;o.textContent=r.port;$('port').appendChild(o);}$('port').value=r.port;$('baud').value=String(r.baud);}else if(r.mode==='tcp'){$('host').value=r.host;$('tcpPort').value=String(r.tcp_port);$('wakeMac').value='';}$('connectionType').onchange();$('discoveryStatus').textContent='Selected. Click Connect when ready.';};

@@ -67,7 +67,7 @@ class TCPTests(unittest.TestCase):
  def test_tcp_and_usb_settings_survive_restart(self):
   with tempfile.TemporaryDirectory() as d:
    p=pathlib.Path(d)/'settings.json';c=Controller(p)
-   c.save_settings(dict(mode='tcp',host='192.168.0.18',tcp_port=1500,auto_connect=True,port='/dev/cu.test',baud=115200))
+   c.save_settings(dict(mode='tcp',host='192.168.0.18',tcp_port=1500,auto_connect=True,port=('COM235' if sys.platform=='win32' else '/dev/cu.test'),baud=115200))
    restored=Controller(p)
    with patch.object(restored,'connect') as connect:
     restored.startup();connect.assert_called_once();self.assertEqual(connect.call_args.args[0]['mode'],'tcp')

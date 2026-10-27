@@ -5,10 +5,10 @@ from protocol import Session
 from version import VERSION
 from transport import SerialTransport,TCPTransport,tcp_endpoint,BAUDS
 from simulator import SimulatorTransport
+from platform_paths import ports,serial_port
 from power import mac_address,wake_address,wake_connect
 ACTIONS={'power_on','power_off','operate','standby','antenna_1','antenna_2','antenna_next','atu_in','atu_bypass','tune','cancel_tune','clear_fault','demo_tx_on','demo_tx_off'}
 ACTIONS.update('fan_'+str(n) for n in range(6))
-def ports():return sorted(set(glob.glob('/dev/cu.usbserial*')+glob.glob('/dev/cu.usbmodem*')))
 class StopFlag:
  # No process-shared condition lock can be stranded by a terminating reader.
  def __init__(self):self.value=multiprocessing.Value('b',0,lock=False)
@@ -71,7 +71,8 @@ def worker_main(config,events,commands,stop):
   if transport:transport.close()
 
 class Controller:
- def __init__(self,settings):
+ def __init__(self,settings,offline_only=False):
+  self.offline_only=offline_only
   self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
   self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False,'host':'','tcp_port':1500,'wake_mac':'','wake_broadcast':'255.255.255.255'}
   try:
@@ -79,16 +80,19 @@ class Controller:
   except (OSError,ValueError):saved={}
   self.startup_mode=saved.get('mode','usb') if isinstance(saved,dict) else 'usb'
   if self.startup_mode not in ('usb','tcp'):self.startup_mode='usb'
+  if self.offline_only:self.config.update(auto_connect=False,share_readings=False)
   self.config['mode']=self.startup_mode
   self.clear('disconnected','Choose USB or TCP/IP and click Connect, or try Simulator.')
- def clear(self,status,message):self.state={'status':status,'message':message,'demo':False};self.received=0
+ def clear(self,status,message):self.state={'status':status,'message':message,'demo':self.offline_only};self.received=0
  def save_settings(self,value):
   port=value.get('port',self.config['port']);baud=value.get('baud',self.config['baud']);automatic=value.get('auto_connect',self.config['auto_connect']);sharing=value.get('share_readings',self.config['share_readings'])
   mode=value.get('mode',self.startup_mode);host=value.get('host',self.config['host']);tcp_port=value.get('tcp_port',self.config['tcp_port'])
   if mode not in ('usb','tcp'):raise ValueError('Choose USB or TCP/IP for startup.')
   if type(sharing) is not bool:raise ValueError('Choose whether to share amplifier readings.')
   if type(automatic) is not bool or type(baud) is not int or baud not in BAUDS:raise ValueError('Invalid startup connection settings.')
-  if not isinstance(port,str) or (port and (not port.startswith('/dev/cu.') or '/' in port[8:])) or (automatic and mode=='usb' and not port):raise ValueError('Select the amplifier Host PC USB port before enabling auto-connect.')
+  if port:port=serial_port(port)
+  if automatic and mode=='usb' and not port:raise ValueError('Select the amplifier Host PC USB port before enabling auto-connect.')
+  if self.offline_only and (automatic or sharing):raise ValueError('Offline simulation cannot enable startup connections or sharing.')
   if host or mode=='tcp':host,tcp_port=tcp_endpoint(host,tcp_port)
   elif type(tcp_port) is not int or not 1<=tcp_port<=65535:raise ValueError('Enter a TCP port from 1 to 65535.')
   mac=value.get('wake_mac',self.config['wake_mac']);broadcast=value.get('wake_broadcast',self.config['wake_broadcast'])
@@ -100,6 +104,7 @@ class Controller:
   self.startup_mode=mode;self.config.update({k:v for k,v in saved.items() if k!='mode'})
   if self.worker is None:self.config['mode']=mode
  def startup(self):
+  if self.offline_only:return
   if self.config['auto_connect']:
    try:self.connect(dict(self.config,mode=self.startup_mode))
    except (ValueError,OSError) as exc:self.clear('error','Startup connection failed: '+str(exc)+'. Connect manually when ready.')
@@ -122,7 +127,8 @@ class Controller:
   if mode not in ('usb','tcp','simulator'):raise ValueError('Choose USB, TCP/IP or Simulator.')
   if mode=='tcp':host,tcp_port=tcp_endpoint(host,tcp_port)
   if type(baud) is not int or baud not in BAUDS:raise ValueError('Select a supported baud rate.')
-  if mode=='usb' and (not isinstance(port,str) or not port.startswith('/dev/cu.') or '/' in port[8:]):raise ValueError('Select the amplifier Host PC USB port.')
+  if self.offline_only and mode!='simulator':raise ValueError('This session is offline simulation only. No hardware connection is allowed.')
+  if mode=='usb':port=serial_port(port)
   with self.operation:
    if mode!='simulator':self.save_settings(dict(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port))
    self._disconnect();self.config.update(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port)
@@ -159,7 +165,7 @@ class Controller:
    if state.get('status')=='live' and state.get('age_seconds',99)>=2.5:state.update(status='stale',message='Amplifier readings are stale.')
    if state.get('status')!='live':
     for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning','fan_minimum','fan_speed'):state[key]=None
-   return dict(app_version=VERSION,schema_version=1,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
+   return dict(app_version=VERSION,schema_version=1,offline_only=self.offline_only,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
  def telemetry(self):
   # Only cached state crosses this boundary; no USB reads or operating commands.
   if not self.config['share_readings']:raise PermissionError('Enable Share readings with DX Caliber in KPA1500 Control.')
