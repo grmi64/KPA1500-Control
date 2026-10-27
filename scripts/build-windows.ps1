@@ -15,6 +15,7 @@ $options = @('--noconfirm','--clean','--onedir','--windowed','--name',$buildName
 foreach ($asset in $assets) { $options += @('--add-data',"$project/Sources/$asset;.") }
 & $Python -m PyInstaller @options Sources/windows_app.py
 if ($LASTEXITCODE -ne 0) { throw 'Windows candidate build failed' }
+Copy-Item -LiteralPath "$project/Sources/windows_dotnet.config" -Destination ($exe + '.config')
 Copy-Item -LiteralPath "$project/LICENSE" -Destination (Join-Path $package 'LICENSE')
 Copy-Item -LiteralPath "$project/WINDOWS.md" -Destination (Join-Path $package 'README-Windows.txt')
 Copy-Item -LiteralPath "$project/LICENSING.md","$project/WINDOWS-RELEASE-IDENTITY.md" -Destination $package
