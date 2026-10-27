@@ -50,6 +50,7 @@ def handler_for(controller,token,activate=None,simulate_discovery=False):
     if action=='discover':
      if controller.offline_only and not simulate_discovery:raise ValueError('Discovery is disabled in offline simulation. No device or network probes sent.')
      with controller.operation:
+      if controller.launch_pending:raise ValueError('A launch mode change is pending. No discovery started.')
       if controller.snapshot()['state']['status'] not in ('disconnected','error'):raise ValueError('Disconnect the amplifier before discovery.')
       result=discovery.start([] if controller.offline_only else ports(),value.get('baud',230400),value.get('tcp_port',1500))
     elif action=='activate' and activate is not None:activate();result={'activated':True}

@@ -7,6 +7,7 @@ from transport import SerialTransport,TCPTransport,tcp_endpoint,BAUDS
 from simulator import SimulatorTransport
 from platform_paths import ports,serial_port
 from power import mac_address,wake_address,wake_connect
+from read_only import QueryOnlyTransport
 ACTIONS={'power_on','power_off','operate','standby','antenna_1','antenna_2','antenna_next','atu_in','atu_bypass','tune','cancel_tune','clear_fault','demo_tx_on','demo_tx_off'}
 ACTIONS.update('fan_'+str(n) for n in range(6))
 class StopFlag:
@@ -26,9 +27,11 @@ def worker_main(config,events,commands,stop):
  transport=None;completion=config.get('_completion');outcome=[];startup_result=None
  try:
   demo=config['mode']=='simulator'
+  if config.get('read_only') and (config.get('power_request') or config.get('wake_request')):raise ValueError('Read-only telemetry cannot power on or wake an amplifier.')
   if demo:transport=SimulatorTransport()
   elif config['mode']=='tcp':transport=wake_connect(config,stop.is_set,TCPTransport,stop.wait) if config.get('wake_request') else TCPTransport(config['host'],config['tcp_port'])
   else:transport=SerialTransport(config['port'],config['baud'])
+  if config.get('read_only'):transport=QueryOnlyTransport(transport)
   amp=Session(transport,cancelled=stop.is_set)
   if config.get('wake_request'):
    amp.read('MA')
@@ -53,6 +56,7 @@ def worker_main(config,events,commands,stop):
     try:
      if time.time()>item['expires']:raise ValueError('Request expired; no command sent.')
      name=item['action']
+     if config.get('read_only'):raise ValueError('Read-only telemetry: all controls are disabled.')
      if name.startswith('demo_tx_'):
       if not demo:raise ValueError('Simulation control is unavailable on hardware connections.')
       transport.tx=name=='demo_tx_on';result={'status':'confirmed','message':'Simulator transmit state changed.'}
@@ -85,8 +89,8 @@ def worker_main(config,events,commands,stop):
     finally:completion.close()
 
 class Controller:
- def __init__(self,settings,offline_only=False):
-  self.offline_only=offline_only
+ def __init__(self,settings,offline_only=False,read_only=False,manual_connect=False):
+  self.offline_only=offline_only;self.read_only=read_only;self.manual_connect=manual_connect;self.launch_pending=False
   self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.completion=None;self.worker_finished=False;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
   self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False,'host':'','tcp_port':1500,'wake_mac':'','wake_broadcast':'255.255.255.255'}
   try:
@@ -95,10 +99,12 @@ class Controller:
   self.startup_mode=saved.get('mode','usb') if isinstance(saved,dict) else 'usb'
   if self.startup_mode not in ('usb','tcp'):self.startup_mode='usb'
   if self.offline_only:self.config.update(auto_connect=False,share_readings=False)
+  if self.manual_connect:self.config['auto_connect']=False
   self.config['mode']=self.startup_mode
   self.clear('disconnected','Choose USB or TCP/IP and click Connect, or try Simulator.')
  def clear(self,status,message):self.state={'status':status,'message':message,'demo':self.offline_only};self.received=0
  def save_settings(self,value):
+  if self.launch_pending:raise ValueError('A launch mode change is pending. Close the window to finish reopening.')
   port=value.get('port',self.config['port']);baud=value.get('baud',self.config['baud']);automatic=value.get('auto_connect',self.config['auto_connect']);sharing=value.get('share_readings',self.config['share_readings'])
   mode=value.get('mode',self.startup_mode);host=value.get('host',self.config['host']);tcp_port=value.get('tcp_port',self.config['tcp_port'])
   if mode not in ('usb','tcp'):raise ValueError('Choose USB or TCP/IP for startup.')
@@ -106,6 +112,7 @@ class Controller:
   if type(automatic) is not bool or type(baud) is not int or baud not in BAUDS:raise ValueError('Invalid startup connection settings.')
   if port:port=serial_port(port)
   if automatic and mode=='usb' and not port:raise ValueError('Select the amplifier Host PC USB port before enabling auto-connect.')
+  if self.manual_connect and automatic:raise ValueError('Windows launch modes require explicit Connect; startup auto-connect is disabled.')
   if self.offline_only and (automatic or sharing):raise ValueError('Offline simulation cannot enable startup connections or sharing.')
   if host or mode=='tcp':host,tcp_port=tcp_endpoint(host,tcp_port)
   elif type(tcp_port) is not int or not 1<=tcp_port<=65535:raise ValueError('Enter a TCP port from 1 to 65535.')
@@ -118,7 +125,7 @@ class Controller:
   self.startup_mode=mode;self.config.update({k:v for k,v in saved.items() if k!='mode'})
   if self.worker is None:self.config['mode']=mode
  def startup(self):
-  if self.offline_only:return
+  if self.offline_only or self.manual_connect:return
   if self.config['auto_connect']:
    try:self.connect(dict(self.config,mode=self.startup_mode))
    except (ValueError,OSError) as exc:self.clear('error','Startup connection failed: '+str(exc)+'. Connect manually when ready.')
@@ -146,6 +153,7 @@ class Controller:
   if self.offline_only and mode!='simulator':raise ValueError('This session is offline simulation only. No hardware connection is allowed.')
   if mode=='usb':port=serial_port(port)
   with self.operation:
+   if self.launch_pending:raise ValueError('A launch mode change is pending. No connection opened.')
    if mode!='simulator':self.save_settings(dict(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port))
    self._disconnect();self.config.update(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port)
    with self.guard:self.clear('connecting','Identifying amplifier…');self.state['demo']=mode=='simulator'
@@ -153,7 +161,7 @@ class Controller:
    try:
     self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=StopFlag()
     self.completion,sender=multiprocessing.Pipe(duplex=False)
-    worker_config=dict(self.config,power_request=power_request,wake_request=bool(power_request and mode=='tcp'),_completion=sender)
+    worker_config=dict(self.config,power_request=power_request,wake_request=bool(power_request and mode=='tcp'),_completion=sender,read_only=self.read_only)
     self.worker=multiprocessing.Process(target=worker_main,args=(worker_config,self.events,self.commands,self.stop),daemon=True)
     self.worker.start()
    except BaseException as exc:
@@ -172,11 +180,17 @@ class Controller:
    for _ in range(100):
     try:pending.append(self.events.get_nowait())
     except queue.Empty:break
-  if self.completion and self.completion.poll():
-   try:pending.extend(self.completion.recv())
-   except (EOFError,OSError):pass
+  if self.completion:
+   finished=False
+   try:
+    if self.completion.poll():pending.extend(self.completion.recv());finished=True
+   except (EOFError,OSError):
+    # Windows can raise from poll itself when an abruptly stopped reader closes
+    # its pipe. Retire the channel, then handle worker death below as usual.
+    finished=True
    finally:
-    self.completion.close();self.completion=None;self.worker_finished=True
+    if finished:
+     self.completion.close();self.completion=None;self.worker_finished=True
   for kind,data in pending:
    if kind=='state':
     self.state=data;self.received=time.time()
@@ -204,7 +218,7 @@ class Controller:
    if state.get('status')=='live' and state.get('age_seconds',99)>=2.5:state.update(status='stale',message='Amplifier readings are stale.')
    if state.get('status')!='live':
     for key in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','voltage_v','current_a','transmitting','operate','antenna','atu_enabled','atu_inline','tuning','fan_minimum','fan_speed'):state[key]=None
-   return dict(app_version=VERSION,schema_version=1,offline_only=self.offline_only,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
+   return dict(app_version=VERSION,schema_version=1,offline_only=self.offline_only,read_only=self.read_only,manual_connect=self.manual_connect,reader_present=self.worker is not None,model='KPA1500',generation=self.generation,state=state,connection=dict(self.config),actions=list(self.action_log),faults=list(self.fault_log))
  def telemetry(self):
   # Only cached state crosses this boundary; no USB reads or operating commands.
   if not self.config['share_readings']:raise PermissionError('Enable Share readings with DX Caliber in KPA1500 Control.')
@@ -212,7 +226,9 @@ class Controller:
   keys=('status','age_seconds','forward_watts','reflected_watts','swr','temperature_c','operate','antenna','atu_enabled','demo')
   return dict(schema_version=1,model='KPA1500',**{key:state.get(key) for key in keys})
  def action(self,value):
+  if self.read_only:raise ValueError('Read-only telemetry: all controls, power and wake requests are disabled.')
   with self.guard:
+   if self.launch_pending:raise ValueError('A launch mode change is pending. No command sent.')
    snapshot=self.snapshot();name=value.get('action')
    if name not in ACTIONS:raise ValueError('Unknown operating control.')
    if name=='power_off' and value.get('confirm_power_off') is not True:raise ValueError('Confirm Power Off before sending the request.')

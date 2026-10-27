@@ -1,4 +1,4 @@
-"""Initial Windows review host: offline simulation only, never hardware."""
+"""Windows host with explicit Simulation, Read-only and Hardware control launch modes."""
 import argparse,json,logging,multiprocessing,os,secrets,sys,threading,time
 from pathlib import Path
 from http.server import ThreadingHTTPServer
@@ -11,6 +11,9 @@ from windows_preferences import Preferences
 from version import VERSION,BUILD
 from windows_dpi import configure_process_dpi,window_dpi,DpiWindowHook,set_window_bounds
 from windows_runtime import ensure_webview2_runtime
+from windows_launch import MODES,LaunchWorkflow,mode_settings,launch_replacement
+from transport import tcp_endpoint,BAUDS
+from platform_paths import serial_port
 
 def fit_bounds(bounds,area):
  x,y,w,h=bounds;l,t,aw,ah=area;w=min(max(1,w),aw);h=min(max(1,h),ah)
@@ -113,11 +116,18 @@ class DisplayBridge:
   return {k:v for k,v in self._preferences.snapshot().items() if k not in ('position','full_size')} if self._preferences else {}
  def save_preferences(self,value):
   if self._preferences:self._preferences.save(value)
- def about_info(self):return dict(name='KPA1500 Control',version=VERSION,build=BUILD,developer='Greg Miller · NY6C',mode='Offline simulation review')
+ def launch_info(self):return self._launch.info() if hasattr(self,'_launch') else dict(mode='simulation',label='Simulation',allowed=False)
+ def request_launch_mode(self,value):return self._launch.request(value)
+ def finish_launch_mode(self):
+  if self._launch.pending is None:raise ValueError('No confirmed launch mode change is pending.')
+  from System import Action
+  self._window.native.BeginInvoke(Action(self._window.destroy))
+  return {'closing':True}
+ def about_info(self):return dict(name='KPA1500 Control',version=VERSION,build=BUILD,developer='Greg Miller \u00b7 NY6C',mode=self.launch_info()['label'])
  def show_about(self):
   from System import Action
   from System.Windows.Forms import MessageBox
-  self._window.native.BeginInvoke(Action(lambda:MessageBox.Show(self._window.native,f'KPA1500 Control {VERSION} (build {BUILD})\nGreg Miller · NY6C\nOffline simulation review','About KPA1500 Control')))
+  self._window.native.BeginInvoke(Action(lambda:MessageBox.Show(self._window.native,f'KPA1500 Control {VERSION} (build {BUILD})\nGreg Miller · NY6C\n{self.launch_info()["label"]}','About KPA1500 Control')))
  def display_window(self,options):
   if not isinstance(options,dict) or any(type(options.get(k)) is not bool for k in ('compact','alwaysOnTop')):raise ValueError('Invalid window preferences')
   from System import Action
@@ -137,8 +147,27 @@ class DisplayBridge:
   w.on_top=options['alwaysOnTop'];keep_visible(w)
 
 def main(argv=None):
- parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--demo',action='store_true');parser.add_argument('--settings',type=Path,default=data_directory()/'Windows Review/simulation.json');parser.add_argument('--http-port',type=int,default=51980);parser.add_argument('--smoke-test',action='store_true');parser.add_argument('--smoke-reopen',action='store_true');parser.add_argument('--smoke-close-test',action='store_true');args=parser.parse_args(argv)
- args.settings=args.settings.resolve()
+ parser=argparse.ArgumentParser(description=__doc__)
+ modes=parser.add_mutually_exclusive_group();modes.add_argument('--demo',action='store_true');modes.add_argument('--read-only',action='store_true');modes.add_argument('--hardware',action='store_true')
+ parser.add_argument('--mode-handoff',action='store_true',help=argparse.SUPPRESS)
+ parser.add_argument('--settings',type=Path,default=data_directory()/'Windows/simulation.json');parser.add_argument('--http-port',type=int,default=0)
+ parser.add_argument('--connection-type',choices=('usb','tcp'));parser.add_argument('--usb-port');parser.add_argument('--baud',type=int,default=230400);parser.add_argument('--host');parser.add_argument('--tcp-port',type=int,default=1500)
+ parser.add_argument('--smoke-test',action='store_true');parser.add_argument('--smoke-reopen',action='store_true');parser.add_argument('--smoke-close-test',action='store_true');args=parser.parse_args(argv)
+ mode='read-only' if args.read_only else 'hardware' if args.hardware else 'simulation'
+ if (args.smoke_test or args.smoke_reopen or args.smoke_close_test) and mode!='simulation':parser.error('Smoke tests must remain offline in Simulation.')
+ if args.smoke_reopen and not args.smoke_test:parser.error('Reopen smoke requires --smoke-test')
+ if (args.connection_type or args.usb_port or args.host) and mode=='simulation':parser.error('Hardware endpoints require an explicit Read-only or Hardware control mode.')
+ endpoint=None
+ if args.connection_type:
+  if args.baud not in BAUDS:parser.error('Unsupported baud rate')
+  if args.connection_type=='tcp':
+   if args.usb_port:parser.error('USB port cannot be combined with TCP/IP')
+   host,port=tcp_endpoint(args.host,args.tcp_port);endpoint=dict(mode='tcp',host=host,tcp_port=port,baud=args.baud)
+  else:
+   if args.host:parser.error('TCP/IP host cannot be combined with USB')
+   endpoint=dict(mode='usb',port=serial_port(args.usb_port) if args.usb_port else '',baud=args.baud)
+ elif args.usb_port or args.host:parser.error('Select the endpoint connection type')
+ base_settings=args.settings.resolve();args.settings=mode_settings(base_settings,mode)
  if sys.platform!='win32':parser.error('Windows is required')
  if args.smoke_close_test and not args.smoke_test:parser.error('Close regression requires --smoke-test')
  if args.smoke_test and args.http_port!=0:parser.error('Smoke tests require --http-port 0 and a new --settings file')
@@ -148,7 +177,7 @@ def main(argv=None):
   args.settings.parent.mkdir(parents=True,exist_ok=True);trace=args.settings.with_suffix('.trace.log').open('w');faulthandler.dump_traceback_later(30,file=trace)
  configure_process_dpi()
  instance=Instance(args.settings)
- if not instance.acquire():return 0
+ if not instance.acquire(activate_existing=not (args.mode_handoff or endpoint is not None)):return 0
  preferences=Preferences(args.settings.with_suffix('.window.json'))
  activation=threading.Event();bridge=None
  def activate():
@@ -165,12 +194,15 @@ def main(argv=None):
  try:
   import webview
   ensure_webview2_runtime(Path(webview.__file__).parent)
-  controller=Controller(args.settings,offline_only=True);token=secrets.token_urlsafe(24)
-  server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token,activate=activate,simulate_discovery=True));server.daemon_threads=True
-  thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.1},daemon=True);thread.start();controller.connect({'mode':'simulator'})
-  bridge=DisplayBridge(preferences);url=f'http://127.0.0.1:{server.server_port}/{token}/'
+  controller=Controller(args.settings,offline_only=mode=='simulation',read_only=mode=='read-only',manual_connect=True)
+  if endpoint:controller.save_settings(dict(endpoint,auto_connect=False,share_readings=False))
+  token=secrets.token_urlsafe(24)
+  server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token,activate=activate,simulate_discovery=mode=='simulation'));server.daemon_threads=True
+  thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.1},daemon=True);thread.start()
+  if mode=='simulation':controller.connect({'mode':'simulator'})
+  bridge=DisplayBridge(preferences);bridge._launch=LaunchWorkflow(controller,server.RequestHandlerClass.discovery,base_settings,mode,restricted=args.smoke_test);url=f'http://127.0.0.1:{server.server_port}/{token}/'
   webview.settings.update(ALLOW_FILE_URLS=False,ALLOW_DOWNLOADS=False,OPEN_EXTERNAL_LINKS_IN_BROWSER=False,OPEN_DEVTOOLS_IN_DEBUG=False)
-  window=webview.create_window('KPA1500 Control · OFFLINE SIMULATION REVIEW',url,js_api=bridge,width=preferences.snapshot().get('full_size',[1020,850])[0],height=preferences.snapshot().get('full_size',[1020,850])[1],min_size=(360,440),background_color='#111619',text_select=True);bridge._window=window
+  window=webview.create_window('KPA1500 Control · '+MODES[mode],url,js_api=bridge,width=preferences.snapshot().get('full_size',[1020,850])[0],height=preferences.snapshot().get('full_size',[1020,850])[1],min_size=(360,440),background_color='#111619',text_select=True);bridge._window=window
   def setup():
    nonlocal display_callback
    from System import Action
@@ -216,6 +248,8 @@ def main(argv=None):
     wait_js("snapshot?.state?.status === 'live'")
     wait_js("snapshot?.state?.demo === true")
     wait_js("!document.getElementById('top').disabled")
+    wait_js("!document.getElementById('launchPanel').hidden && document.getElementById('accessNotice').textContent.includes('Simulation') && document.getElementById('applyLaunchMode').disabled")
+    wait_js("getComputedStyle(document.getElementById('accessNotice')).display !== 'none'")
     if args.smoke_reopen:
      wait_js("prefs.theme === 'light' && prefs.measurement === 'frequency' && prefs.callsign === 'REVIEW' && prefs.sections.faults === false")
     window.evaluate_js("prefs.compact=false;prefs.theme='dark';applyView();document.getElementById('view').click();document.getElementById('theme').click()")
@@ -223,6 +257,7 @@ def main(argv=None):
     window.evaluate_js("document.getElementById('top').checked=true;document.getElementById('top').onchange()")
     wait_js("prefs.top === true")
     window.evaluate_js("document.getElementById('top').checked=false;document.getElementById('top').onchange();document.getElementById('view').click()")
+    wait_js("getComputedStyle(document.getElementById('accessNotice')).display !== 'none'")
     from System import Action
     from System.Windows.Forms import FormWindowState
     def ui(call):
@@ -281,6 +316,16 @@ def main(argv=None):
        return
       time.sleep(.05)
      raise RuntimeError('Simulated action did not finish: '+name)
+    # Kill only the offline simulator reader: the state API and Disconnect must
+    # remain usable even when Windows reports a broken completion pipe.
+    failed_worker=controller.worker;failed_worker.terminate();failed_worker.join(3)
+    if failed_worker.is_alive():raise RuntimeError('Simulator reader did not exit')
+    wait_js("snapshot.state.status === 'error' && snapshot.reader_present === true && !document.getElementById('disconnect').disabled && document.getElementById('forward').textContent === '\u2014'")
+    window.evaluate_js("document.getElementById('disconnect').click()")
+    wait_js("snapshot.state.status === 'disconnected' && snapshot.reader_present === false && !busy && !document.getElementById('connect').disabled")
+    if controller.worker is not None:raise RuntimeError('Failed simulator ownership was not released')
+    window.evaluate_js("document.getElementById('connect').click()")
+    wait_js("snapshot.state.status === 'live'")
     # Exercise stale/error presentation without any hardware transport.
     controller.disconnect();controller.clear('stale','Simulated telemetry loss.')
     wait_js("snapshot.state.status === 'stale' && !document.getElementById('demoBanner').hidden && document.getElementById('operate').disabled && document.getElementById('forward').textContent === '—'")
@@ -309,11 +354,14 @@ def main(argv=None):
      bridge.save_preferences=delayed_save
      window.evaluate_js("prefs.theme='dark';applyView();prefs.theme='light';applyView()")
      if not started.wait(3):raise RuntimeError('Close test save was not in flight')
-    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves']}
+    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves','explicit Simulation launch notice and restricted mode selector','abrupt simulator reader exit, responsive state API, explicit Disconnect and manual recovery']}
     args.settings.parent.mkdir(parents=True,exist_ok=True);args.settings.with_suffix('.smoke.json').write_text(json.dumps(report,indent=2))
    except Exception as exc:
     import traceback
-    args.settings.with_suffix('.failure.json').write_text(json.dumps({'error':str(exc),'traceback':traceback.format_exc()},indent=2),encoding='utf-8');failures.append(str(exc))
+    detail={'error':str(exc),'traceback':traceback.format_exc()}
+    try:detail['ui']=window.evaluate_js("({snapshot,busy,connectionType:document.getElementById('connectionType').value,message:document.getElementById('actionMessage').textContent})")
+    except Exception:pass
+    args.settings.with_suffix('.failure.json').write_text(json.dumps(detail,indent=2),encoding='utf-8');failures.append(str(exc))
    finally:
     window.destroy()
     if close_save_release is not None:close_save_release.set()
@@ -336,11 +384,14 @@ def main(argv=None):
   instance.close()
  if args.smoke_test:
   faulthandler.cancel_dump_traceback_later();trace.close()
- return 0
+ return bridge._launch.pending if bridge is not None and bridge._launch.pending is not None else 0
 
 if __name__=='__main__':
  multiprocessing.freeze_support()
- try:sys.exit(main())
+ try:
+  result=main()
+  if isinstance(result,list):launch_replacement(result);result=0
+  sys.exit(result)
  except Exception as exc:
   import ctypes
   if sys.stderr:print(str(exc),file=sys.stderr)
