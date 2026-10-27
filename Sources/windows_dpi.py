@@ -42,8 +42,8 @@ def _callback(function):
 
 class DpiWindowHook:
  """Observe native DPI messages even when WinForms' managed event is disabled."""
- def __init__(self,handle,changed):
-  self.handle=handle;self.changed=changed;self.installed=False;self.identity=id(self);self.notifications=0;self.last_error=None
+ def __init__(self,handle,changed,prepare=None,minimized=None):
+  self.handle=handle;self.changed=changed;self.prepare=prepare;self.minimized=minimized;self.installed=False;self.identity=id(self);self.notifications=0;self.last_error=None
   self.api=_comctl32();self.callback=_callback(self._message)
   self.api.SetWindowSubclass.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_size_t,ctypes.c_size_t];self.api.SetWindowSubclass.restype=ctypes.c_int
   self.api.RemoveWindowSubclass.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_size_t];self.api.RemoveWindowSubclass.restype=ctypes.c_int
@@ -53,9 +53,16 @@ class DpiWindowHook:
  def _message(self,handle,message,wparam,lparam,identity,data):
   suggested=None
   try:
+   if message==0x0005 and wparam==1 and self.minimized:self.minimized()
    if message==WM_DPICHANGED and lparam:
     rect=ctypes.cast(lparam,ctypes.POINTER(_Rect)).contents
     suggested=(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top)
+    # Capture minimized restore geometry before WinForms processes this message.
+    if self.prepare:
+     suggested=self.prepare(suggested,wparam&0xffff)
+     # WinForms may defer applying this message's rectangle; correct the
+     # original too so a later managed resize cannot undo the fitted size.
+     rect.left,rect.top=suggested[:2];rect.right=rect.left+suggested[2];rect.bottom=rect.top+suggested[3]
    if message==WM_NCDESTROY:self.close()
   except Exception:logging.exception('DPI message inspection failed')
   result=self.api.DefSubclassProc(handle,message,wparam,lparam)
@@ -70,3 +77,11 @@ class DpiWindowHook:
  def close(self):
   if self.installed:
    self.api.RemoveWindowSubclass(self.handle,self.callback,self.identity);self.installed=False
+
+
+def set_window_bounds(handle,bounds):
+ """Apply physical outer bounds without activation or changing Z order."""
+ api=_user32()
+ api.SetWindowPos.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_uint]
+ api.SetWindowPos.restype=ctypes.c_int
+ if not api.SetWindowPos(handle,None,*bounds,0x0014):raise RuntimeError('Windows could not restore the DPI-adjusted window bounds.')

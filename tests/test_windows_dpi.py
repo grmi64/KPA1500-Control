@@ -5,7 +5,7 @@ sys.path.insert(0,str(__import__("pathlib").Path(__file__).resolve().parents[1]/
 from pathlib import Path
 from unittest.mock import Mock,patch
 from windows_dpi import configure_process_dpi,window_dpi,DpiWindowHook,WM_DPICHANGED,WM_NCDESTROY,_Rect
-from windows_app import keep_visible
+from windows_app import keep_visible,WindowDpiSizing,normal_window_size
 
 class DpiTests(unittest.TestCase):
  def api(self,changed=1,verified=1):
@@ -42,7 +42,7 @@ class DpiTests(unittest.TestCase):
   form=types.SimpleNamespace(WindowState=0,DeviceDpi=96,Handle=Mock(),Bounds=rectangle(0,0,900,900))
   form.Handle.ToInt64.return_value=456
   area=rectangle(0,0,1920,1104)
-  modules={'System.Drawing':types.SimpleNamespace(Rectangle=rectangle,Size=size),'System.Windows.Forms':types.SimpleNamespace(Screen=types.SimpleNamespace(FromControl=lambda form:types.SimpleNamespace(WorkingArea=area)),FormWindowState=types.SimpleNamespace(Normal=0))}
+  modules={'System.Drawing':types.SimpleNamespace(Rectangle=rectangle,Size=size),'System.Windows.Forms':types.SimpleNamespace(Screen=types.SimpleNamespace(FromControl=lambda form:types.SimpleNamespace(WorkingArea=area)),FormWindowState=types.SimpleNamespace(Normal=0,Minimized=1,Maximized=2))}
   with patch.dict('sys.modules',modules),patch('windows_app.window_dpi',return_value=120) as dpi:keep_visible(types.SimpleNamespace(native=form))
   dpi.assert_called_once_with(456)
   self.assertEqual((form.MinimumSize.Width,form.MinimumSize.Height),(450,550))
@@ -68,7 +68,7 @@ class DpiTests(unittest.TestCase):
     self.applied_minimum=(self.MinimumSize.Width,self.MinimumSize.Height);self._bounds=value
   form=Form();form.Handle.ToInt64.return_value=456;area=rectangle(0,0,1920,1104)
   screen=types.SimpleNamespace(FromRectangle=lambda rect:types.SimpleNamespace(WorkingArea=area))
-  modules={'System.Drawing':types.SimpleNamespace(Rectangle=rectangle,Size=size),'System.Windows.Forms':types.SimpleNamespace(Screen=screen,FormWindowState=types.SimpleNamespace(Normal=0))}
+  modules={'System.Drawing':types.SimpleNamespace(Rectangle=rectangle,Size=size),'System.Windows.Forms':types.SimpleNamespace(Screen=screen,FormWindowState=types.SimpleNamespace(Normal=0,Minimized=1,Maximized=2))}
   with patch.dict('sys.modules',modules),patch('windows_app.window_dpi',return_value=120):keep_visible(types.SimpleNamespace(native=form),(200,40,525,900))
   self.assertEqual(form.applied_minimum,(450,550));self.assertEqual(form.Bounds.Width,525)
 

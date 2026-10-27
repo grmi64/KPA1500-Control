@@ -1,5 +1,5 @@
 """Initial Windows review host: offline simulation only, never hardware."""
-import argparse,json,multiprocessing,os,secrets,sys,threading,time
+import argparse,json,logging,multiprocessing,os,secrets,sys,threading,time
 from pathlib import Path
 from http.server import ThreadingHTTPServer
 from engine import Controller
@@ -9,30 +9,81 @@ from windows_instance import Instance
 from windows_close import CloseCoordinator
 from windows_preferences import Preferences
 from version import VERSION,BUILD
-from windows_dpi import configure_process_dpi,window_dpi,DpiWindowHook
+from windows_dpi import configure_process_dpi,window_dpi,DpiWindowHook,set_window_bounds
 from windows_runtime import ensure_webview2_runtime
 
 def fit_bounds(bounds,area):
  x,y,w,h=bounds;l,t,aw,ah=area;w=min(max(1,w),aw);h=min(max(1,h),ah)
  return max(l,min(x,l+aw-w)),max(t,min(y,t+ah-h)),w,h
 
+class WindowDpiSizing:
+ """Correct the unscaled rectangle Windows can suggest while restoring an icon."""
+ def __init__(self,window):
+  self.window=window;self.dpi=window_dpi(window.native.Handle.ToInt64());self.restore_size=None;self.correction=None;self.generation=0;self.last_error=None
+ def minimized(self):
+  bounds=self.window.native.RestoreBounds
+  self.restore_size=(bounds.Width,bounds.Height,self.dpi)
+ def activated(self):
+  self.restore_size=None
+ def prepare(self,suggested,dpi):
+  from System.Windows.Forms import FormWindowState
+  previous=self.dpi
+  self.generation+=1
+  if dpi<=0:return suggested
+  self.dpi=dpi
+  form=self.window.native
+  if previous!=dpi and (self.restore_size or form.WindowState==FormWindowState.Minimized):
+   bounds=form.RestoreBounds;pending=getattr(self.window,'_pending_dpi_bounds',None)
+   width,height=pending[2:] if pending else (bounds.Width,bounds.Height)
+   if self.restore_size:width,height,previous=self.restore_size
+   self.restore_size=None
+   self.correction=(suggested[0],suggested[1],round(width*dpi/previous),round(height*dpi/previous))
+   return self.correction
+  return suggested
+ def changed(self,suggested):
+  keep_visible(self.window,suggested)
+  if self.correction:
+   # SetWindowPlacement can finish restoring its old bounds after the DPI
+   # message returns. Apply once more when that native restore stack unwinds.
+   from System import Action
+   target=self.correction;self.correction=None;generation=self.generation;dpi=self.dpi
+   def finish_restore():
+    try:
+     form=self.window.native
+     if not form.IsDisposed and generation==self.generation and window_dpi(form.Handle.ToInt64())==dpi:
+      fitted=keep_visible(self.window,target)
+      if fitted:set_window_bounds(form.Handle.ToInt64(),fitted)
+    except Exception as exc:
+     self.last_error=str(exc);logging.exception('Deferred DPI restore failed')
+   self.window.native.BeginInvoke(Action(finish_restore))
+ def discard_restore(self):
+  self.activated();self.correction=None;self.generation+=1
+
 def keep_visible(window,suggested=None):
  from System.Drawing import Rectangle,Size
  from System.Windows.Forms import Screen,FormWindowState
  form=window.native
+ if form.WindowState==FormWindowState.Minimized and suggested:
+  window._pending_dpi_bounds=suggested
+ if form.WindowState==FormWindowState.Normal:
+  suggested=suggested or getattr(window,'_pending_dpi_bounds',None)
+  window._pending_dpi_bounds=None
  area=(Screen.FromRectangle(Rectangle(*suggested)) if suggested else Screen.FromControl(form)).WorkingArea
  scale=window_dpi(form.Handle.ToInt64())/96
  form.MinimumSize=Size(min(round(360*scale),area.Width),min(round(440*scale),area.Height))
  if form.WindowState!=FormWindowState.Normal:return
  b=form.Bounds;bounds=(b.X,b.Y,b.Width,b.Height);fitted=fit_bounds(suggested or bounds,(area.X,area.Y,area.Width,area.Height))
  if fitted!=bounds:form.Bounds=Rectangle(*fitted)
+ return fitted
 
 def normal_window_size(window):
  """Return the normal outer size in logical pixels, even while maximized."""
  from System.Windows.Forms import FormWindowState
  form=window.native
  if form.WindowState==FormWindowState.Normal:return window.width,window.height
+ pending=getattr(window,'_pending_dpi_bounds',None)
  bounds=form.RestoreBounds;scale=window_dpi(form.Handle.ToInt64())/96
+ if pending:return round(pending[2]/scale),round(pending[3]/scale)
  return round(bounds.Width/scale),round(bounds.Height/scale)
 
 class DisplayBridge:
@@ -60,6 +111,8 @@ class DisplayBridge:
   if small!=self._compact:
    if small:self._full_size=normal_window_size(w)
    w.native.WindowState=FormWindowState.Normal
+   w._pending_dpi_bounds=None
+   if hasattr(w,'_dpi_sizing'):w._dpi_sizing.discard_restore()
    w.resize(*((410,540) if small else self._full_size));self._compact=small
   w.on_top=options['alwaysOnTop'];keep_visible(w)
 
@@ -109,12 +162,16 @@ def main(argv=None):
    def changed(sender,event):
     if not form.IsDisposed:form.BeginInvoke(Action(lambda:keep_visible(window)))
    display_callback=changed;SystemEvents.DisplaySettingsChanged+=display_callback
-   form.Activated+=lambda sender,event:keep_visible(window)
+   def activated(sender,event):
+    keep_visible(window);window._dpi_sizing.activated()
+   form.Activated+=activated
+   form.ResizeEnd+=lambda sender,event:window._dpi_sizing.discard_restore()
    bridge._full_size=tuple(preferences.snapshot().get('full_size',[1020,850]))
    def navigating(sender,event):
     if str(event.Uri)!=url:event.Cancel=True
    window.native.webview.NavigationStarting+=navigating
-   window._dpi_hook=DpiWindowHook(window.native.Handle.ToInt64(),lambda suggested:keep_visible(window,suggested));keep_visible(window)
+   window._dpi_sizing=WindowDpiSizing(window)
+   window._dpi_hook=DpiWindowHook(window.native.Handle.ToInt64(),window._dpi_sizing.changed,prepare=window._dpi_sizing.prepare,minimized=window._dpi_sizing.minimized);keep_visible(window)
   window.events.before_show+=setup
   def remember():
    from System.Windows.Forms import FormWindowState
