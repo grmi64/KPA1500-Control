@@ -4,6 +4,8 @@ Standalone KPA1500 amplifier monitoring and controls for macOS and Windows. The 
 
 Project-owned code and artwork use the [MIT License](LICENSE); bundled third-party components retain their own notices. See [LICENSING.md](LICENSING.md) and [Windows release identity](WINDOWS-RELEASE-IDENTITY.md).
 
+Current local Windows candidate: [validation and checksums](WINDOWS-RELEASE-CANDIDATE.md), [installation/release notes draft](WINDOWS-RELEASE-NOTES.md). No Windows publication is authorized by these documents.
+
 The baseline audit and older version sections below preserve historical Mac evidence; they do not establish current Windows release acceptance.
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
