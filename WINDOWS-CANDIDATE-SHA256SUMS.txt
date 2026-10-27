@@ -1,0 +1,5 @@
+30f39200c5431fb32e47b5777bb9871d9a888b76be12e3e692a887fbf308842d  dist/windows/KPA1500-Control-0.1.25-build26-main-51c3106-Windows-x64-signed.zip
+c69d4d9d5adf703022ac5c6f3946651ebce81f622c5a0133cb32b1a07a39ffcc  dist/windows/KPA1500 Control/KPA1500 Control.exe
+75fbb66004ca2416ffb7029467c15e0a21a7b71ee6449d3656a2a97bd49bdd89  dist/windows/KPA1500 Control/KPA1500 Control.exe.config
+309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/KPA1500 Control/LICENSE
+309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/KPA1500 Control/_internal/LICENSE

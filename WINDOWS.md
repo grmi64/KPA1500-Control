@@ -1,6 +1,6 @@
 # KPA1500 Control Windows development candidate
 
-This unsigned development candidate starts in **Simulation** by default. The Windows launch panel offers Simulation, Read-only amplifier telemetry and Hardware control. These local changes have only offline validation; no hardware-enabled packaged acceptance or release approval is implied. No radio keying or drive-control feature exists.
+This Windows development candidate starts in **Simulation** by default. The Windows launch panel offers Simulation, Read-only amplifier telemetry and Hardware control. These local changes have only offline validation; no hardware-enabled packaged acceptance or release approval is implied. No radio keying or drive-control feature exists.
 
 ## Launch modes
 
@@ -38,7 +38,7 @@ Use Python 3.12. `scripts/setup-windows.ps1` creates this project's own `.venv` 
 
 Run `scripts/test-windows.ps1`, then `scripts/build-windows.ps1` for the review identity, or `scripts/build-windows.ps1 -ProductionIdentity` for a separate production-named local candidate. See WINDOWS-RELEASE-IDENTITY.md for metadata and version mapping. The build includes pyserial's Windows implementation and port-listing module, pywebview/pythonnet runtime metadata, the DPI/asInvoker manifest, and dependency notices. The build runs `scripts/check-windows-notices.py`, verifying all notice/source hashes, all frozen module roots and every dependency DLL/PYD/JAR against the reviewed inventory. Changes to dependencies require inventory review.
 
-Dependency notices are version-specific. The owner selected the MIT License for project-owned application code and artwork; see LICENSE and LICENSING.md. Third-party components retain their separate notices. This is a local development artifact, not a signed release or Store submission. See WINDOWS-PORT-STATUS.md for evidence and remaining acceptance.
+Dependency notices are version-specific. The owner selected the MIT License for project-owned application code and artwork; see LICENSE and LICENSING.md. Third-party components retain their separate notices. Source builds are unsigned until separately signed. The current signed candidate and exact test scope are recorded in WINDOWS-RELEASE-CANDIDATE.md; signing does not authorize release or Store submission. See WINDOWS-PORT-STATUS.md for historical evidence.
 
 Closing waits asynchronously for pending preference saves. If saving fails or times out, the window remains open and reports the error. Correct the storage problem and close again to retry the preference save. This mechanism does not retry any amplifier commands.
 

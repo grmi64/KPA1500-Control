@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "prepared_date": "2026-10-27",
+  "product": "KPA1500 Control",
+  "source_commit": "51c310629a460d3e4a927ced1ac77955e6b05367",
+  "application_version": "0.1.25",
+  "build": "26",
+  "windows_numeric_version": "0.1.25.26",
+  "architecture": "x64",
+  "status": "signed prerelease candidate; local only; publication not authorized",
+  "artifacts": {
+    "zip": {
+      "path": "dist/windows/KPA1500-Control-0.1.25-build26-main-51c3106-Windows-x64-signed.zip",
+      "sha256": "30f39200c5431fb32e47b5777bb9871d9a888b76be12e3e692a887fbf308842d",
+      "bytes": 14521326
+    },
+    "exe": {
+      "path": "dist/windows/KPA1500 Control/KPA1500 Control.exe",
+      "sha256": "c69d4d9d5adf703022ac5c6f3946651ebce81f622c5a0133cb32b1a07a39ffcc",
+      "bytes": 5427768
+    },
+    "exe_config": {
+      "path": "dist/windows/KPA1500 Control/KPA1500 Control.exe.config",
+      "sha256": "75fbb66004ca2416ffb7029467c15e0a21a7b71ee6449d3656a2a97bd49bdd89",
+      "bytes": 312
+    },
+    "application_license": {
+      "path": "dist/windows/KPA1500 Control/LICENSE",
+      "sha256": "309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277",
+      "bytes": 1096
+    },
+    "internal_application_license": {
+      "path": "dist/windows/KPA1500 Control/_internal/LICENSE",
+      "sha256": "309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277",
+      "bytes": 1096
+    }
+  },
+  "signature": {
+    "publisher": "Gregory Miller",
+    "authenticode_status": "Valid",
+    "timestamp_authority": "Microsoft Public RSA Time Stamping Authority",
+    "timestamp_local": "2026-10-27T16:22:56-07:00",
+    "signtool_verified_signatures": 1,
+    "signtool_warnings": 0,
+    "signtool_errors": 0,
+    "evidence": "private local .tmp/main-51c3106/signature-verify.log"
+  },
+  "tests": {
+    "build_identity_config_licenses_dependency_notices": "passed; 57 pinned notice/source files",
+    "offline_marked_zip_shell_launch": "passed; inherited markers retained on EXE/DLL/config; live Simulation",
+    "internet_enabled_explorer_launch": "reached live Simulation; agent and user observed no warning; inherited markers verified before launch",
+    "internet_enabled_harness_qualification": "Post-launch EXE Zone.Identifier absent; raw report records evidence-check failure after simulation readiness. Cause unestablished; no test unblock/security-setting action.",
+    "standard_user_final_zip": "passed; non-admin token, read-only app directory, own-profile persistence, first/reopen exit 0, no active adapters or Python/Node",
+    "missing_webview2_final_zip": "passed; process-local override, expected dialog confirmed, exit 1 without backend/listener; restored same runtime and simulation recovery exit 0, no remaining app processes",
+    "windows_reviewed_source_regressions": {
+      "commit": "24b8bc7bb6a7913b5772969fa6c351c293bdc3f7",
+      "python_passed": 188,
+      "python_skipped": 2,
+      "javascript_suites_passed": 12,
+      "configuration_tests_passed": 3
+    },
+    "mac_compatibility_reported": {
+      "commit": "24b8bc7bb6a7913b5772969fa6c351c293bdc3f7",
+      "python_passed": 183,
+      "python_skipped": 7,
+      "javascript_suites_passed": 12,
+      "configuration_tests_passed": 3,
+      "swift_placement": "passed",
+      "production_fingerprints_unchanged": 66
+    }
+  },
+  "limits": [
+    "Synthetic downloaded-file metadata, not a public browser download",
+    "No-warning guest result is not universal SmartScreen reputation assurance",
+    "Multiple-monitor acceptance pending",
+    "Final signed-package hardware acceptance pending; older live tests not relabeled",
+    "KPA1500 Store identity/MSIX/WACK not performed",
+    "Public support/privacy drafts require owner approval",
+    "Distribution documents need synchronization before any repackaging; do not reuse these hashes for a regenerated ZIP"
+  ],
+  "hardware_connected_during_final_candidate_tests": false,
+  "publication_performed": false,
+  "documentation_consolidation": "No runtime/ZIP/EXE modification, network activity, hardware access, commit or publication. Current source documentation is newer than the immutable tested ZIP.",
+  "record_layout": "repository",
+  "artifact_path_base": {
+    "anchor": "manifest_directory",
+    "relative_directory": ".",
+    "description": "Repository root, the directory containing this JSON record and the repository checksum file."
+  },
+  "checksum_path_base": "Directory containing WINDOWS-CANDIDATE-SHA256SUMS.txt. Run checksum tools from that directory.",
+  "companion_layout": "The standalone companion record uses ../ paths to the sibling ZIP and extracted KPA1500 Control directory; do not interchange the two checksum files."
+}

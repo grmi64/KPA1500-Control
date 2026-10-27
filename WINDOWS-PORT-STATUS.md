@@ -371,3 +371,32 @@ signing and downloaded-file shell acceptance. Physical multiple-monitor testing
 remains pending. Validation used no hardware connection/commands, merge or publication.
 User subsequently confirmed that Full and Compact views look correct and
 simulator labeling remains visible in the marked-file fixed review build.
+
+## Final signed candidate consolidation (2026-10-27)
+
+PR #6 is merged; the exact final candidate source is
+51c310629a460d3e4a927ced1ac77955e6b05367. Signing, offline marked-ZIP shell launch,
+Internet-enabled Explorer observation, final-ZIP standard-user persistence and
+missing-WebView2/recovery results are consolidated in WINDOWS-RELEASE-CANDIDATE.md.
+WINDOWS-CANDIDATE.json and WINDOWS-CANDIDATE-SHA256SUMS.txt identify the immutable
+signed artifacts. WINDOWS-RELEASE-NOTES.md is an unpublished installation/support
+and data-handling draft. Source signing-status wording was refreshed; earlier
+sections above remain historical records, not current release approval.
+
+This documentation-only consolidation preserves the signed EXE/ZIP. Its tests
+remain attached to those exact hashes, not a future repackaging. Physical
+multiple-monitor and final-package hardware acceptance remain pending; KPA1500
+Store/MSIX/WACK and public policy/listing work are separate. No new hardware or
+network activity, commit, merge or publication occurred during consolidation.
+
+Standalone checksum review follow-up: the repository JSON explicitly anchors
+artifact paths to its manifest directory (repository root). The standalone JSON
+anchors paths to its own directory and uses ../ references to the sibling ZIP
+and extracted application directory. Each checksum file uses the same paths as
+its paired JSON and is verified from its containing directory. Documentation
+specifies the corresponding Explorer extraction destination. Offline checks
+verified all five hashes/sizes and checksum/JSON agreement in repository,
+standalone and relocated-standalone layouts (15 artifact checks total). The
+signed EXE/ZIP were unchanged. Evidence: .tmp/main-51c3106/path-base-verification.json.
+Physical multiple-monitor testing remains pending; no app launch, hardware
+connection, commit, merge or publication occurred in this follow-up.
