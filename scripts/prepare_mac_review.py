@@ -9,19 +9,28 @@ def replace_once(source,old,new):
     if source.count(old)!=1:raise ValueError('Mac wrapper changed; review harness anchors before generating.')
     return source.replace(old,new)
 
+def geometry_suite_for(identifier):
+    return identifier+'.geometry'
+
 def render(source,settings,port,store_id=STORE_ID,identifier=IDENTIFIER):
     if type(port) is not int or not 1024<=port<=65535 or port==51980:
         raise ValueError('Choose a stable review-only port (1024..65535, excluding production 51980).')
     path=str(settings)
     if any(c in path for c in '\n\r\t\x00'):raise ValueError('Invalid settings path.')
-    source=replace_once(source,'    var compact = false',f'    var compact = false\n    let reviewDefaults = UserDefaults(suiteName: "{identifier}")!')
+    suite=geometry_suite_for(identifier)
+    source=replace_once(source,'    var compact = false','    var compact = false\n    var reviewDefaults: UserDefaults?')
     source=replace_once(source,'        let identifier = Bundle.main.bundleIdentifier ?? "com.grmi64.KPA1500Control"',f'''        let identifier = "{identifier}"
         guard Bundle.main.bundleIdentifier == identifier else {{
             showError("Review bundle identity mismatch; refusing startup.")
             NSApp.terminate(nil); return
-        }}''')
+        }}
+        guard let geometryDefaults = UserDefaults(suiteName: "{suite}") else {{
+            showError("Could not initialize isolated review geometry preferences. No backend was started.")
+            NSApp.terminate(nil); return
+        }}
+        reviewDefaults = geometryDefaults''')
     source=replace_once(source,'        window.setFrameAutosaveName("KPA1500MainWindow")','''        // Review geometry never uses Cocoa's implicit standard-domain autosave.
-        if let stored = reviewDefaults.string(forKey: "ReviewMainFrame") {
+        if let stored = reviewDefaults?.string(forKey: "ReviewMainFrame") {
             window.setFrame(NSRectFromString(stored), display: false)
         }''')
     source=replace_once(source,'        let config = WKWebViewConfiguration()',f'''        let config = WKWebViewConfiguration()
@@ -33,11 +42,11 @@ def render(source,settings,port,store_id=STORE_ID,identifier=IDENTIFIER):
         }}''')
     source=replace_once(source,'        var args = ["--no-browser","--http-port","51980"]\n        if CommandLine.arguments.contains("--demo") { args.append("--demo") }',
         '        let args = ['+', '.join(json.dumps(x,ensure_ascii=False) for x in ['--no-browser','--demo','--http-port',str(port),'--settings',path])+']')
-    source=source.replace('UserDefaults.standard','reviewDefaults')
+    source=source.replace('UserDefaults.standard.','reviewDefaults?.')
     source=replace_once(source,'        shuttingDown = true','''        shuttingDown = true
         if let window = window {
-            reviewDefaults.set(NSStringFromRect(window.frame), forKey: "ReviewMainFrame")
-            reviewDefaults.synchronize()
+            reviewDefaults?.set(NSStringFromRect(window.frame), forKey: "ReviewMainFrame")
+            reviewDefaults?.synchronize()
         }''')
     return source
 
@@ -57,7 +66,7 @@ def prepare(project,output,settings,port):
     output.mkdir(parents=True);settings.parent.mkdir(parents=True,exist_ok=True)
     (output/'App.swift').write_text(generated,encoding='utf-8')
     (output/'Info.plist').write_bytes(plistlib.dumps(dict(CFBundleIdentifier=identifier,CFBundleName='KPA1500 Windows Review',CFBundleDisplayName='KPA1500 Windows Review',CFBundleExecutable='KPA1500Control',CFBundlePackageType='APPL',CFBundleShortVersionString=versions['VERSION'],CFBundleVersion=versions['BUILD'],CFBundleIconFile='AppIcon.icns',LSMinimumSystemVersion='14.0',NSHighResolutionCapable=True,NSPrincipalClass='NSApplication')))
-    (output/'review-plan.json').write_text(json.dumps(dict(bundle_identifier=identifier,web_data_store=store_id,http_port=port,settings=str(settings),offline_only=True,geometry_domain=identifier),indent=2),encoding='utf-8')
+    (output/'review-plan.json').write_text(json.dumps(dict(bundle_identifier=identifier,web_data_store=store_id,http_port=port,settings=str(settings),offline_only=True,geometry_domain=geometry_suite_for(identifier),geometry_suite=geometry_suite_for(identifier)),indent=2),encoding='utf-8')
     return output
 
 def main():
