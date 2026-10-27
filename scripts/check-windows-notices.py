@@ -21,7 +21,18 @@ def notice_matches(path, expected):
                         for value in (data, lf, lf.replace(b'\n', b'\r\n'))}
 
 
+def check_application_license(package):
+    source = PROJECT / 'LICENSE'
+    if not source.is_file():
+        raise RuntimeError('Application LICENSE is missing from source')
+    expected = hashlib.sha256(source.read_bytes()).hexdigest()
+    for path in (package / 'LICENSE', package / '_internal' / 'LICENSE'):
+        if not notice_matches(path, expected):
+            raise RuntimeError('Application LICENSE missing or changed in package: ' + str(path))
+
+
 def check(package, toc):
+    check_application_license(package)
     root = package / '_internal' / 'ThirdPartyNotices'
     inventory = json.loads((root / 'windows' / 'inventory.json').read_text())
     for relative, expected in inventory['files'].items():
