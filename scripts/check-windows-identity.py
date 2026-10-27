@@ -1,12 +1,19 @@
 """Inspect Windows PE metadata/icon resources without executing the application."""
 import argparse,sys,struct
 from pathlib import Path
-import pefile
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'Sources'))
 from windows_identity import PRODUCT_NAME,REVIEW_NAME,DEVELOPER,COPYRIGHT,numeric_version
 from version import VERSION
 
+def check_dotnet_config(package,name):
+ expected=(Path(__file__).resolve().parents[1]/'Sources/windows_dotnet.config').read_bytes().replace(b'\r\n',b'\n')
+ config=package/(name+'.exe.config')
+ if not config.is_file() or config.read_bytes().replace(b'\r\n',b'\n')!=expected:
+  raise RuntimeError('Application .NET configuration missing or changed: '+str(config))
+
 def check(package,name):
+ check_dotnet_config(package,name)
+ import pefile
  if name not in (PRODUCT_NAME,REVIEW_NAME):raise ValueError('Unknown build identity')
  exe=package/(name+'.exe');pe=pefile.PE(str(exe))
  try:

@@ -339,3 +339,35 @@ The owner explicitly confirmed authority to license KPA1500 application code/art
 Windows production identity is KPA1500 Control / KPA1500 Control.exe, built separately at dist/windows/KPA1500 Control with scripts/build-windows.ps1 -ProductionIdentity. Default review packaging remains available at its existing path. The authoritative shared version stays 0.1.25/build 26; generated Windows file/numeric product version is 0.1.25.26 and ProductVersion text is 0.1.25. The EXE embeds the existing project ICO (all source icon payloads verified), developer/copyright, original filename and product metadata. It is marked as a prerelease development candidate; signing and Store identity were not performed or invented. Windows bundles now include application LICENSE internally and beside the EXE, plus Windows usage/licensing/identity documentation. The build audits application license copies, dependency notices and PE identity resources. Mac version, wrapper/build scripts and application runtime/command logic remain unchanged by this step.
 
 Offline validation passed: 187 Python tests, 185 passed/two expected platform skips; three identity/license regressions passed. The production-named candidate built successfully, passed dependency/application-license and PE metadata/icon audits, then passed packaged Simulation first-launch/reopen and close-during-save checks (both exit zero) using fresh settings, sharing=false and auto_connect=false. That smoke includes native views, simulator controls, instance activation under the new executable name, saved preferences, guards and abrupt-reader recovery. No candidate process remained. The previous reviewed EXE was not overwritten by the production-identity build. Evidence: .tmp/windows-identity-python.log, .tmp/windows-production-identity-build.log, .tmp/windows-production-identity-smoke/ and .tmp/windows-license-identity-result.json. This new identity binary needs its own later clean-PC/security/Store checks; older main binary test hashes are not relabeled as this new artifact. Physical multiple-monitor and hardware-enabled packaged acceptance remain pending. No hardware connection, commit, signing, Store submission or publication occurred; changes remain local and uncommitted.
+
+## Downloaded-file startup fix review (2026-10-27)
+
+The signed main-4d71536 ZIP failed after Explorer propagated Internet-zone
+markers: Python.NET could not resolve Python.Runtime.Loader.Initialize. A
+separate marked-DLL probe confirmed .NET Framework FileLoadException
+0x80131515. A private child-domain prototype was insufficient because the
+loader also resolves assemblies in the root domain; that prototype was removed.
+
+The Windows build now includes a matching EXE-specific `.exe.config` beside
+either production or review EXE. The config allows this application's CLR host
+to load its bundled marked assemblies; it does not remove download markers,
+change machine policy or disable SmartScreen. The identity audit rejects missing
+or changed sidecars. Application runtime, shared backend/UI, Mac sources,
+dependencies and version are unchanged.
+
+Validation of the separate unsigned review build: 190 Python tests, 188 passed
+and two expected platform skips; three config regressions; all 12 JavaScript
+suites; build notice/identity audits and marked host smoke passed. In a fresh
+network-disabled Sandbox without Python/Node, 237 extracted files were marked
+Internet-zone, including EXE, Python.Runtime.dll and sidecar. First launch,
+close-during-save and reopen simulation smoke checks exited 0. All 237 markers
+remained; checked EXE/DLL/config hashes were unchanged. This used direct process
+launch to isolate CLR loading; it is not an online SmartScreen or newly signed
+shell-launch acceptance result. Visual confirmation is tracked separately.
+
+The original signed EXE/ZIP are preserved and still represent the failing
+pre-fix packaging. The fixed production package needs a subsequent rebuild,
+signing and downloaded-file shell acceptance. Physical multiple-monitor testing
+remains pending. Validation used no hardware connection/commands, merge or publication.
+User subsequently confirmed that Full and Compact views look correct and
+simulator labeling remains visible in the marked-file fixed review build.

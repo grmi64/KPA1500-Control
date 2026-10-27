@@ -30,6 +30,8 @@ In Simulation, Disconnect then Auto Discovery demonstrates synthetic progress, c
 
 The implemented Windows hardware discovery provider (not exercised live) passively enumerates COM ports for explicit user selection, without serial identity probes. Its TCP provider reads the default IPv4 route and directly attached interface, rejects invalid/routed gateway data, limits larger networks to the current /24, preserves smaller subnets, excludes the PC itself and caps TCP targets at 254. It provides bounded identity-only probes, cancellation and manual-IP fallback. This candidate has not been connected to hardware. Any live validation requires separate approval; offline tests use simulation or mocked transports only.
 
+The complete folder also includes an EXE-specific `.exe.config` file beside the EXE. Keep that file with the package: it configures this application's .NET host to load its bundled managed assemblies when the ZIP retains Windows' downloaded-file marker. It does not remove those markers or change Windows, SmartScreen, or machine-wide .NET settings. The packaging audit rejects a missing or modified config.
+
 ## Develop and build
 
 Use Python 3.12. `scripts/setup-windows.ps1` creates this project's own `.venv` and installs `requirements-windows.lock.txt`. Setup downloads dependencies; offline tests and simulator execution do not need Internet.
