@@ -1,6 +1,10 @@
-# KPA1500 Control — Windows-port baseline 0.1.25
+# KPA1500 Control
 
-This review branch preserves the installed Mac 0.1.25/build 26 source, including previously uncommitted discovery updates. The latest published release remains 0.1.21; no Windows build is included. Start with [WINDOWS-PORT-HANDOFF.md](WINDOWS-PORT-HANDOFF.md) and [BASELINE-AUDIT-2026-10-26.md](BASELINE-AUDIT-2026-10-26.md). Older version sections below are historical records.
+Standalone KPA1500 amplifier monitoring and controls for macOS and Windows. The Windows development candidate starts in Simulation; explicit Read-only and Hardware control launch modes are documented in [WINDOWS.md](WINDOWS.md). Local production-named packaging is preparation only, not a published Windows release.
+
+Project-owned code and artwork use the [MIT License](LICENSE); bundled third-party components retain their own notices. See [LICENSING.md](LICENSING.md) and [Windows release identity](WINDOWS-RELEASE-IDENTITY.md).
+
+The baseline audit and older version sections below preserve historical Mac evidence; they do not establish current Windows release acceptance.
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
