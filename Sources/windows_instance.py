@@ -6,9 +6,10 @@ from endpoint_lock import EndpointLock
 class Instance:
  def __init__(self,settings):
   self.path=Path(settings).resolve().with_suffix('.instance.json');self.lease=EndpointLock('KPA1500-Windows-review:'+str(Path(settings).resolve()).casefold());self.owner=False
- def acquire(self):
+ def acquire(self,activate_existing=True):
   try:self.lease.acquire();self.owner=True;return True
   except OSError:
+   if not activate_existing:raise RuntimeError('A KPA1500 window for the selected mode is already open. Close that window and retry the mode change. Its connection was not activated or changed.') from None
    # The first process may still be preparing its WebView2 runtime.
    last_error=None
    for _ in range(20):
