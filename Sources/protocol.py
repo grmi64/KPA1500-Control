@@ -6,7 +6,7 @@ import re,time,math
 BANDS=['160m','80m','60m','40m','30m','20m','17m','15m','12m','10m','6m']
 FAULTS={'00':'No active fault','10':'Controller watchdog reset','20':'PA current high','40':'PA temperature high — allow cooling','60':'Input power high','61':'Gain low','70':'Frequency outside supported range','80':'50 V supply out of range','81':'5 V supply out of range','82':'10 V supply out of range','83':'12 V supply out of range','84':'Negative supply out of range','85':'LPF board supply missing','90':'Reflected power high','91':'Very high SWR','92':'ATU could not find a match','B0':'Dissipation high','C0':'Forward power high','C1':'Power exceeds ATU setting limit','F0':'Gain high'}
 FAST=('VG','PWF','PWR','SW','TM','OS','FL','TP','AN','AM','AI')
-SLOW=('BN','FR','PWI','PC','VI','SB','DS')
+SLOW=('BN','FR','PWI','PC','VI','SB','DS','FC','FS')
 class Protocol:
  def __init__(self,transport):self.transport=transport;self.buffer=b'';self.log=[]
  def send(self,command):
@@ -37,6 +37,10 @@ def parse(frame):
  for tag,key,maximum in [('PWF','forward_watts',20000),('PWR','reflected_watts',20000),('PWI','input_watts',2000),('TM','temperature_c',200),('PC','current_a',300),('FR','frequency_khz',100000),('SW','swr',999),('SB','bypass_swr',999)]:
   if body.startswith(tag):
    value=number(tag,maximum);return {key:value/10 if tag in ('SW','SB') else value}
+ if re.fullmatch(r'F[CS][0-5]',body):return {'fan_minimum' if body[1]=='C' else 'fan_speed':int(body[2])}
+ if re.fullmatch(r'ON[01]',body):return {'powered_on':body[2]=='1'}
+ if re.fullmatch(r'WL[01]',body):return {'wake_enabled':body[2]=='1'}
+ if re.fullmatch(r'MA(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}',body):return {'mac_address':body[2:].upper()}
  if re.fullmatch(r'OS[01]',body):return {'operate':body[2]=='1'}
  if re.fullmatch(r'TP[01]',body):return {'tuning':body[2]=='1'}
  if re.fullmatch(r'AI[01]',body):return {'atu_inline':body[2]=='1'}
@@ -74,21 +78,46 @@ class Session:
     if self.protocol.query('I',.6).upper()=='^KPA1500;':
      self.read('SN');self.read('RVM');return
    except TimeoutError:pass
-  raise ValueError('This port did not identify as a KPA1500. Check Host PC USB and baud rate.')
+  raise ValueError('This port did not identify as a KPA1500. Check the amplifier connection and address or USB baud rate.')
  def poll(self,slow=False):
+  self.read('ON')
+  if 'ON' not in self.errors and self.values.get('powered_on') is False:return
   for tag in FAST+(SLOW if slow else ()):self.read(tag)
  def snapshot(self):
   now=time.time();age=now-self.last_live if self.last_live else None
-  values={k:(v if now-self.observed.get(k,0)<(12 if k in ('serial','firmware','band','frequency_khz','input_watts','current_a','voltage_v','bypass_swr','lcd') else 3) or k in ('serial','firmware') else None) for k,v in self.values.items()}
+  values={k:(v if now-self.observed.get(k,0)<(12 if k in ('serial','firmware','band','frequency_khz','input_watts','current_a','voltage_v','bypass_swr','lcd','fan_minimum','fan_speed') else 3) or k in ('serial','firmware','mac_address') else None) for k,v in self.values.items()}
   live=age is not None and age<2.5
   if not live:
-   for k in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','current_a','voltage_v'):values[k]=None
-  return dict(values,status='live' if live else 'stale',age_seconds=age,errors=dict(self.errors))
+   for k in ('forward_watts','reflected_watts','swr','temperature_c','input_watts','current_a','voltage_v','fan_minimum','fan_speed'):values[k]=None
+  off=self.values.get('powered_on') is False and now-self.observed.get('powered_on',0)<3 and 'ON' not in self.errors
+  if off:
+   for key in list(values):
+    if key not in ('powered_on','serial','firmware','mac_address','wake_enabled'):values[key]=None
+  return dict(values,status='powered_off' if off else 'live' if live else 'stale',age_seconds=age,errors=dict(self.errors))
+ def power_on(self,usb=False,wake_only=False):
+  if self.cancelled():raise ValueError('Connection is closing; no power command sent.')
+  if usb:self.protocol.transport.write(b';;;')
+  for attempt in range(6 if usb else 1):
+   if self.cancelled():raise ValueError('Connection is closing; no power command sent.')
+   if self.read('ON'):break
+   if usb:time.sleep(.05)
+  else:raise ValueError('Cannot verify amplifier power state; no power command sent.')
+  if self.values.get('powered_on') is True:return {'status':'confirmed','message':'Wake-on-LAN startup confirmed. Startup mode follows the amplifier settings.' if wake_only else 'Amplifier already powered on.','action':'power_on'}
+  if self.cancelled():raise ValueError('Connection is closing; no power command sent.')
+  if not wake_only:self.protocol.send('^ON1;')
+  deadline=time.monotonic()+8
+  while not self.cancelled():
+   self.read('ON')
+   if 'ON' not in self.errors and self.values.get('powered_on') is True:return {'status':'confirmed','message':'Power on confirmed. Startup mode follows the amplifier settings.','action':'power_on'}
+   if time.monotonic()>=deadline:break
+   time.sleep(.1)
+  return {'status':'unconfirmed','message':'Power on sent once; startup was not confirmed. Check the amplifier.','action':'power_on'}
  def action(self,name):
   # Query the amplifier again immediately before writes; never trust a screen's old TX state.
-  choices={'operate':('^OS1;','OS','operate',True),'standby':('^OS0;','OS','operate',False),'antenna_1':('^AN1;','AN','antenna',1),'antenna_2':('^AN2;','AN','antenna',2),'antenna_next':('^AN0;','AN','antenna',None),'atu_in':('^AMI;','AM','atu_enabled',True),'atu_bypass':('^AMB;','AM','atu_enabled',False),'clear_fault':('^FLC;','FL','fault_code','00'),'tune':('^FT;','TP','tuning',True),'cancel_tune':('^FE;','TP','tuning',False)}
+  choices={'power_off':('^ON0;','ON','powered_on',False),'operate':('^OS1;','OS','operate',True),'standby':('^OS0;','OS','operate',False),'antenna_1':('^AN1;','AN','antenna',1),'antenna_2':('^AN2;','AN','antenna',2),'antenna_next':('^AN0;','AN','antenna',None),'atu_in':('^AMI;','AM','atu_enabled',True),'atu_bypass':('^AMB;','AM','atu_enabled',False),'clear_fault':('^FLC;','FL','fault_code','00'),'tune':('^FT;','TP','tuning',True),'cancel_tune':('^FE;','TP','tuning',False)}
+  choices.update({'fan_'+str(n):('^FC'+str(n)+';','FC','fan_minimum',n) for n in range(6)})
   if name not in choices:raise ValueError('Unknown operating control.')
-  required=('VG','PWF','TP','FL','OS','AM')
+  required=('VG','PWF','TP','FL','OS','AM')+(('FC',) if name.startswith('fan_') else ())
   for tag in required:
    if not self.read(tag):raise ValueError('Cannot verify amplifier status; control was not sent.')
   state=self.snapshot()
@@ -101,8 +130,26 @@ class Session:
   command,tag,key,expected=choices[name]
   if self.cancelled():raise ValueError('Connection is closing; control was not sent.')
   self.protocol.send(command)
+  if name.startswith('fan_'):self.read('FC') # Drain a possible setter echo before the verifying GET.
   # A setter may echo the same tag. Readback is the amplifier's actual reported state.
-  self.read(tag);reported=self.values.get(key)
+  # Cancel can be acknowledged before the amplifier finishes leaving tune mode.
+  # Wait only for GET readbacks; the setter above is never replayed.
+  deadline=time.monotonic()+1.5
+  while True:
+   if self.cancelled():raise ValueError('Connection is closing; confirmation stopped. Control was not repeated.')
+   try:self.read(tag);reported=self.values.get(key)
+   except OSError:
+    if name!='power_off':raise
+    self.errors[tag]='Connection closed after power-off request.';reported=None
+   if self.cancelled():raise ValueError('Connection is closing; confirmation stopped. Control was not repeated.')
+   if name not in ('cancel_tune','power_off') or tag in self.errors or reported==expected:break
+   remaining=deadline-time.monotonic()
+   if remaining<=0:break
+   time.sleep(min(.1,remaining))
   if tag in self.errors or (expected is not None and reported!=expected):
-   return {'status':'unconfirmed','message':'Command sent once; expected state was not confirmed. Check the amplifier.','action':name}
-  return {'status':'confirmed','message':('Antenna '+str(reported)+' reported.' if name=='antenna_next' else name.replace('_',' ').capitalize()+' confirmed.'),'action':name}
+   message='Command sent once; expected state was not confirmed. Check the amplifier.'
+   if name=='power_off':message='Power off sent once; shutdown was not confirmed. Check the front panel. The connection may close during shutdown.'
+   if name in ('antenna_1','antenna_2'):
+    message='Antenna selection was not confirmed. Check the amplifier antenna configuration for the current band; the requested antenna may be disabled. Command sent once.'
+   return {'status':'unconfirmed','message':message,'action':name}
+  return {'status':'confirmed','message':('Minimum fan speed '+('Auto' if reported==0 else str(reported))+' confirmed.' if name.startswith('fan_') else 'Antenna '+str(reported)+' reported.' if name=='antenna_next' else name.replace('_',' ').capitalize()+' confirmed.'),'action':name}

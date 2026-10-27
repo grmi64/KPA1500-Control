@@ -20,7 +20,7 @@ class ProtocolTests(unittest.TestCase):
   self.assertEqual(parse('^AN32;'),{'antenna':32})
   self.assertEqual(parse('^BN05;'),{'band':'20m'})
  def test_invalid_and_out_of_range_frames(self):
-  for raw in ['^AN00;','^BN99;','^PWFnan;','^PWI-1;','^OS2;','^TM999;','^SW99999;','garbage','^FC0;']:
+  for raw in ['^AN00;','^BN99;','^PWFnan;','^PWI-1;','^OS2;','^TM999;','^SW99999;','garbage','^FC6;']:
    with self.assertRaises(ValueError,msg=raw):parse(raw)
  def test_tx_unknown_is_not_rx(self):
   self.assertIsNone(parse('^VG unknown;')['transmitting'])
@@ -36,7 +36,7 @@ class ProtocolTests(unittest.TestCase):
   self.assertTrue(parse('^VG TR_STATE_RX TR_STATE_TX 3T:0 KeyIn:0;')['transmitting'])
  def test_no_operating_writes_on_connect_or_poll(self):
   amp,transport=self.session()
-  self.assertTrue(all(command in ['^I;','^SN;','^RVM;']+['^'+tag+';' for tag in __import__('protocol').FAST+__import__('protocol').SLOW] for command in transport.writes))
+  self.assertTrue(all(command in ['^I;','^SN;','^RVM;','^ON;']+['^'+tag+';' for tag in __import__('protocol').FAST+__import__('protocol').SLOW] for command in transport.writes))
   self.assertEqual(amp.snapshot()['status'],'live')
  def test_controls_verified(self):
   amp,transport=self.session()
@@ -111,6 +111,16 @@ class ControllerTests(unittest.TestCase):
   token='unit-test-token';server=ThreadingHTTPServer(('127.0.0.1',0),handler_for(self.controller,token));threading.Thread(target=server.serve_forever,daemon=True).start();base='http://127.0.0.1:'+str(server.server_port)
   try:
    self.assertEqual(json.load(urllib.request.urlopen(base+'/'+token+'/state'))['model'],'KPA1500')
+   with self.assertRaises(urllib.error.HTTPError) as denied:urllib.request.urlopen(base+'/api/v1/telemetry')
+   self.assertEqual(denied.exception.code,403)
+   self.controller.save_settings({'share_readings':True})
+   feed=json.load(urllib.request.urlopen(base+'/api/v1/telemetry'))
+   self.assertEqual(feed['model'],'KPA1500');self.assertNotIn('connection',feed);self.assertNotIn('actions',feed)
+   self.assertIsNone(self.controller.worker)
+   saved=Controller(self.controller.settings);self.assertTrue(saved.config['share_readings'])
+   with self.assertRaises(ValueError):saved.save_settings({'share_readings':'yes'})
+   self.controller.save_settings({'share_readings':False})
+   with self.assertRaises(urllib.error.HTTPError):urllib.request.urlopen(base+'/api/v1/telemetry')
    for asset in ['','app.js','app.css']:
     with urllib.request.urlopen(base+'/'+token+'/'+asset) as response:self.assertEqual(response.status,200)
    for headers in [{},{'X-Amp-Token':token,'Origin':'https://foreign.test'},{'X-Amp-Token':token,'Host':'evil.test'}]:
