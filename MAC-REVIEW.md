@@ -60,7 +60,7 @@ If production geometry changes again, retain exact changed keys/values and proce
 
 ## Required report
 
-Run all Python tests, all ten JavaScript suites and native Swift placement tests. Report exact commit, counts/skips, generated identity/store/port, Mac compile result, six preference reopen results, footer failure-state checks, production geometry preservation evidence and clean shutdown. Include that no hardware connection, USB opening, real discovery, WOL or radio commands occurred. Windows native close/save remains verified on Windows, not by a Mac run.
+Run all Python tests, all JavaScript suites and native Swift placement tests. Report exact commit, counts/skips, generated identity/store/port, Mac compile result, six preference reopen results, footer failure-state checks, production geometry preservation evidence and clean shutdown. Include that no hardware connection, USB opening, real discovery, WOL or radio commands occurred. Windows native close/save remains verified on Windows, not by a Mac run.
 
 ## Generated-suite startup crash follow-up
 
@@ -69,3 +69,12 @@ The Mac agent found that commit `7c1fb7bf4e4147e8e9704dc6d8d4c7f54aa03446` gener
 At that prior commit the Mac agent reported 134 Python tests (128 passed, six expected skips), all ten JS suites and native placement passed. The footer fix passed in frozen simulation in Full/Compact, Disconnect and backend failure. **All six native preference/reopen checks remained blocked by startup, not passed.** These checks must run on the new generated harness; Windows generator tests alone establish neither Swift compilation nor Mac startup/reopen acceptance.
 
 For the next Mac report, verify `geometry_suite != bundle_identifier` and `geometry_suite == bundle_identifier + '.geometry'`, compile and launch the fresh generated app, then complete all six native preference/reopen checks and production preservation comparisons. If practical, use a separate build-only copy with suite initialization forced to nil to confirm the error/early-exit path; do not modify reviewed source or launch a backend for that negative test. Keep the same generated app/store/settings/port across successful reopen checks. Leave PR #2 unmerged and hardware testing disabled.
+
+
+## Local-service outage control retest
+
+The Mac agent completed the geometry-suite retest at `69be2fb4ed9a4b3e56043714a114a66c6619590d`: 130/136 Python tests passed with six expected skips; all ten then-existing JS suites and native placement passed. Frozen startup, all six preferences through two reopen rounds, guarded suite failure, and all 66 production fingerprints/decoded geometry preservation checks passed. One UI issue remained: Power On and Simulate transmit stayed enabled after backend loss.
+
+The frontend now marks a failed state poll separately from a healthy service's simulator error/disconnected/powered-off state. Power, simulated transmit and other operating actions disable during the outage, along with Connect/Disconnect; control handlers also reject outage actions. A successful state response replaces the marker and restores only state-appropriate controls. Permanent simulation labeling is unchanged. Eleven JavaScript suites now include real poll/renderer/handler regressions for initial failure, repeated outages, simulator power/disconnect recovery and resumed live availability.
+
+Generate a fresh isolated harness using the earlier procedure; retain forced simulation, stable free review-only port, private settings, named WebKit store and distinct geometry suite. Repeat normal launch/reopen and preservation checks. In both Full and Compact, stop only the review backend, wait for “Local amplifier service unavailable,” and verify Power On, Simulate transmit and operating/tuning controls are disabled while readings clear and simulator labeling remains. Do not stop another app's backend. Separately, with a healthy simulator service, verify Disconnect permits Connect/Power On recovery, simulated power-off permits Power On, and resumed live simulation enables Simulate transmit. Report actual Mac results; Windows regressions do not replace native Mac acceptance. Leave PR #2 unmerged and hardware testing disabled.
