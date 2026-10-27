@@ -23,7 +23,7 @@ def worker_main(config,events,commands,stop):
  signal.signal(signal.SIGTERM,signal.SIG_DFL)
  # State is disposable on shutdown; never wait for an undrained UI queue.
  events.cancel_join_thread()
- transport=None
+ transport=None;completion=config.get('_completion');outcome=[];startup_result=None
  try:
   demo=config['mode']=='simulator'
   if demo:transport=SimulatorTransport()
@@ -35,7 +35,7 @@ def worker_main(config,events,commands,stop):
    if amp.values.get('mac_address')!=config['wake_mac']:raise ValueError('Wake connection MAC address did not match the selected amplifier. No power command sent.')
   if config.get('power_request'):
    result=amp.power_on(usb=config['mode']=='usb',wake_only=config.get('wake_request',False))
-   result.update(id=config['power_request'],action='power_on');events.put(('action',result))
+   result.update(id=config['power_request'],action='power_on');startup_result=dict(result);events.put(('action',result))
   amp.read('ON')
   if amp.values.get('powered_on') is not False:amp.identify()
   amp.read('MA');amp.read('WL')
@@ -62,18 +62,32 @@ def worker_main(config,events,commands,stop):
     except (ValueError,OSError,TimeoutError) as exc:result={'id':item['id'],'action':item['action'],'status':'failed','message':str(exc)}
     events.put(('action',result));events.put(('state',dict(amp.snapshot(),demo=demo)))
     if item['action']=='power_off' and result['status'] in ('confirmed','unconfirmed') and config['mode']=='tcp':
-     events.put(('terminal',dict(status='powered_off' if result['status']=='confirmed' else 'disconnected',powered_on=False if result['status']=='confirmed' else None,message=result['message'],demo=False)));return
+     terminal=dict(status='powered_off' if result['status']=='confirmed' else 'disconnected',powered_on=False if result['status']=='confirmed' else None,message=result['message'],demo=False)
+     outcome=[('action',result),('terminal',terminal)];events.put(('terminal',terminal));return
    stop.wait(.25)
  except Exception as exc:
-  if config.get('power_request'):events.put(('action',{'id':config['power_request'],'action':'power_on','status':'failed','message':str(exc)}))
-  events.put(('error',str(exc)))
+  message=str(exc)[:1024] or type(exc).__name__
+  if config.get('power_request') and startup_result is None:outcome.append(('action',{'id':config['power_request'],'action':'power_on','status':'failed','message':message}))
+  outcome.append(('error',message))
+  for event in outcome:events.put(event)
  finally:
-  if transport:transport.close()
+  try:
+   if transport:transport.close()
+  finally:
+   # The disposable telemetry Queue may lose its feeder buffer on exit. A single
+   # small completion record uses a separate pipe and never waits for queue drain.
+   if completion:
+    # Preserve a known startup outcome even if its queue event was lost and a
+    # later telemetry failure ends the reader. Connection loss is a separate error.
+    if startup_result is not None:outcome.insert(0,('action',startup_result))
+    try:completion.send(outcome)
+    except (BrokenPipeError,EOFError,OSError):pass
+    finally:completion.close()
 
 class Controller:
  def __init__(self,settings,offline_only=False):
   self.offline_only=offline_only
-  self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
+  self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.completion=None;self.worker_finished=False;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
   self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False,'host':'','tcp_port':1500,'wake_mac':'','wake_broadcast':'255.255.255.255'}
   try:
    saved=json.loads(self.settings.read_text());saved=saved if isinstance(saved,dict) else {};self.config.update({k:saved[k] for k in ('port','baud','host','tcp_port','wake_mac','wake_broadcast') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True;self.config['share_readings']=saved.get('share_readings') is True
@@ -120,6 +134,8 @@ class Controller:
   for channel in (self.events,self.commands):
    if channel:channel.cancel_join_thread();channel.close()
   self.events=None;self.commands=None
+  if self.completion:self.completion.close();self.completion=None
+  self.worker_finished=False
   with self.guard:
    self.generation=uuid.uuid4().hex;self.clear('disconnected','Amplifier disconnected.');self.action_log=[]
  def connect(self,value,power_request=None):
@@ -132,31 +148,54 @@ class Controller:
   with self.operation:
    if mode!='simulator':self.save_settings(dict(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port))
    self._disconnect();self.config.update(mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port)
-   self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=StopFlag()
    with self.guard:self.clear('connecting','Identifying amplifier…');self.state['demo']=mode=='simulator'
-   worker_config=dict(self.config,power_request=power_request,wake_request=bool(power_request and mode=='tcp'))
-   self.worker=multiprocessing.Process(target=worker_main,args=(worker_config,self.events,self.commands,self.stop),daemon=True);self.worker.start()
+   sender=None
+   try:
+    self.events=multiprocessing.Queue();self.commands=multiprocessing.Queue(maxsize=8);self.stop=StopFlag()
+    self.completion,sender=multiprocessing.Pipe(duplex=False)
+    worker_config=dict(self.config,power_request=power_request,wake_request=bool(power_request and mode=='tcp'),_completion=sender)
+    self.worker=multiprocessing.Process(target=worker_main,args=(worker_config,self.events,self.commands,self.stop),daemon=True)
+    self.worker.start()
+   except BaseException as exc:
+    # An unstarted Process cannot be joined. Reuse normal channel cleanup; if
+    # a child did start before failure, stop it before releasing ownership.
+    if self.worker is not None and self.worker.pid is None:self.worker=None
+    self._disconnect();self.stop=None
+    with self.guard:self.clear('error','Amplifier reader could not start: '+(str(exc) or type(exc).__name__)+'. No automatic retry.')
+    raise
+   finally:
+    if sender:sender.close()
   return self.snapshot()
  def pump(self):
-  if self.events:
+  pending=[]
+  if self.events and not self.worker_finished:
    for _ in range(100):
-    try:kind,data=self.events.get_nowait()
+    try:pending.append(self.events.get_nowait())
     except queue.Empty:break
-    if kind=='state':
-     self.state=data;self.received=time.time()
-     fault=data.get('fault_code')
-     if fault and fault!='00' and fault!=self.last_fault:self.fault_log=([{'code':fault,'message':data.get('fault','Unknown fault'),'at':time.time()}]+self.fault_log)[:30]
-     self.last_fault=fault
-    elif kind=='action':
-     self.action_log=[data]+[a for a in self.action_log if a['id']!=data['id']];self.action_log=self.action_log[:30]
-    elif kind=='identity':
-     try:
-      mac=mac_address(data)
-      if mac!=self.config.get('wake_mac'):self.save_settings({'wake_mac':mac})
-     except (OSError,ValueError):pass
-    elif kind=='terminal':self.state=data;self.received=time.time()
-    elif kind=='error':self.clear('error',data)
-  if self.worker and not self.worker.is_alive() and self.state['status'] not in ('error','disconnected','powered_off'):self.clear('error','Amplifier reader stopped. Reconnect when ready.')
+  if self.completion and self.completion.poll():
+   try:pending.extend(self.completion.recv())
+   except (EOFError,OSError):pass
+   finally:
+    self.completion.close();self.completion=None;self.worker_finished=True
+  for kind,data in pending:
+   if kind=='state':
+    self.state=data;self.received=time.time()
+    fault=data.get('fault_code')
+    if fault and fault!='00' and fault!=self.last_fault:self.fault_log=([{'code':fault,'message':data.get('fault','Unknown fault'),'at':time.time()}]+self.fault_log)[:30]
+    self.last_fault=fault
+   elif kind=='action':
+    self.action_log=[data]+[a for a in self.action_log if a['id']!=data['id']];self.action_log=self.action_log[:30]
+   elif kind=='identity':
+    try:
+     mac=mac_address(data)
+     if mac!=self.config.get('wake_mac'):self.save_settings({'wake_mac':mac})
+    except (OSError,ValueError):pass
+   elif kind=='terminal':self.state=data;self.received=time.time()
+   elif kind=='error':self.clear('error',data)
+  if self.worker and not self.worker.is_alive():
+   if self.state['status'] not in ('error','disconnected','powered_off'):self.clear('error','Amplifier reader stopped (exit code '+str(self.worker.exitcode)+'). Reconnect when ready.')
+   for action in self.action_log:
+    if action['status']=='queued':action.update(status='failed',message=self.state.get('message','Amplifier reader stopped. Request was not confirmed; no automatic retry.'))
  def snapshot(self):
   with self.guard:
    self.pump();state=dict(self.state)
@@ -183,7 +222,10 @@ class Controller:
     if self.config['mode']=='tcp' and not self.config['wake_mac']:raise ValueError('Save the amplifier MAC address in Connection before Ethernet Power On.')
     request_id=uuid.uuid4().hex
     self.connect(dict(self.config),power_request=request_id)
-    result={'id':request_id,'action':name,'status':'queued','message':'Power on requested; waiting for amplifier confirmation. Startup mode follows amplifier settings.'};self.action_log=[result];return result
+    # connect() can already have consumed a fast startup result. Preserve it.
+    completed=next((a for a in self.action_log if a['id']==request_id),None)
+    if completed:return completed
+    result={'id':request_id,'action':name,'status':'failed' if self.state['status']=='error' else 'queued','message':self.state.get('message','Startup failed.') if self.state['status']=='error' else 'Power on requested; waiting for amplifier confirmation. Startup mode follows amplifier settings.'};self.action_log=[result];return result
    if not self.worker or (snapshot['state']['status']!='live' and not (name=='power_on' and snapshot['state']['status']=='powered_off')):raise ValueError('A live connection is required.')
    if any(a['status']=='queued' for a in self.action_log):raise ValueError('An operating request is already pending.')
    item={'id':uuid.uuid4().hex,'action':name,'expires':time.time()+3}
