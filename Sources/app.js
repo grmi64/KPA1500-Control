@@ -78,7 +78,7 @@ $('connectionStatus').textContent=simulated?'SIMULATOR':live?'CONNECTED':state.s
  else if(state.status==='powered_off')message('Amplifier power off confirmed. Power On is available.');
  else if(lastAction){const action=snapshot.actions.find(a=>a.id===lastAction);if(action)message(action.message,['failed','unconfirmed'].includes(action.status));}
  else if(live&&['Controls require a live amplifier connection.','Connecting…','Identifying amplifier…'].includes($('actionMessage').textContent))message(state.demo?'Simulator ready — controls affect simulated data only.':'Amplifier ready.');
- $('sampleAge').textContent=state.age_seconds===null||state.age_seconds===undefined?'No amplifier data':state.age_seconds.toFixed(1)+'s since power reading';$('footerConnection').textContent=state.demo?'Simulator · no hardware connection':snapshot.connection.mode==='tcp'?'TCP/IP · '+(snapshot.connection.host||'No address')+':'+snapshot.connection.tcp_port:snapshot.connection.port||'USB · select amplifier port';paintControls();
+ $('sampleAge').textContent=state.age_seconds===null||state.age_seconds===undefined?'No amplifier data':state.age_seconds.toFixed(1)+'s since power reading';$('footerConnection').textContent=simulated?'Simulator · no hardware connection':snapshot.connection.mode==='tcp'?'TCP/IP · '+(snapshot.connection.host||'No address')+':'+snapshot.connection.tcp_port:snapshot.connection.port||'USB · select amplifier port';paintControls();
 }
 async function poll(){if(polling)return;polling=true;try{snapshot=await api('state');paint();}catch(e){if(snapshot){snapshot.state={status:'error',message:'Local amplifier service unavailable.'};paint();}else message(e.message,true);}finally{polling=false;setTimeout(poll,300);}}
 applyView();poll();

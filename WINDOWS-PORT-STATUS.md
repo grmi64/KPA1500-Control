@@ -55,3 +55,19 @@ The exact prior offline reproduction now requests Light last and persists Light,
 Latest validation: **127 Python tests: 125 passed, 2 documented skips; all 10 JavaScript suites passed.** The 57-file dependency notice/binary/module audit passed. Evidence: `.tmp/review-close-result.json`, `.tmp/close-fix-source-01`, `.tmp/close-fix-frozen-01`, `.tmp/close-fix-build.log`, `.tmp/windows-close-fix-validation.json`.
 
 All validation remained offline in simulation. The reviewed changes are being committed to the review branch for a PR; no hardware connection, merge or publication is authorized. The previously documented clean-PC, physical-monitor, Mac and hardware acceptance gates remain separate.
+
+## Mac review follow-up and Sandbox acceptance
+
+The Mac agent tested exact commit `74547049d6ad916b1bcf1692cf66b33417e6175b` on macOS 27.0.1 arm64: 127 Python tests (121 passed, six expected skips), all ten JavaScript suites, native placement tests and a separate frozen simulator passed. Three follow-ups are recorded in MAC-REVIEW.md.
+
+The simulator footer now shares the permanent simulation decision used by the badge/banner, including local-service failure where state.demo is absent. Rendering regressions cover those states and preserve normal USB/TCP wording.
+
+Mac random-port preference persistence uses an explicitly documented harness-only solution: a generated private Swift wrapper with a fixed non-production review port, forced simulator/fresh settings, a fresh persistent named WebKit store, and an explicit review-only geometry domain. This deliberately leaves the production Swift wrapper unchanged. Seven Python generator regressions pass; Mac compilation, actual preference reopening and preservation retest are pending. See MAC-REVIEW.md for exact build/retest instructions.
+
+The production geometry-plist hash change reported on Mac has no established cause. Static audit found no explicit writer targeting another preference domain. Generated review geometry no longer uses implicit standard-domain autosave; this is isolation hardening, not proof of the previous cause. Mac retesting must retain decoded before/after geometry and process evidence without overwriting production preferences.
+
+Windows fresh Sandbox first-launch/reopen and separate standard-user simulation acceptance passed on the original PR commit. The standard account had no administrator token and no app-folder write access; per-user settings, simulated controls and close-during-save passed. Networking was disabled. A setup coordinator's unavailable secondary-logon runner exit code was documented separately; both tested app exits were zero and the completed standard-user report passed. These results apply to that tested commit, not automatically to future builds.
+
+Current offline regressions: **134 Python tests: 132 passed, two documented skips; all ten JavaScript suites passed.** No hardware connection, merge or publication occurred. Physical multiple-monitor, distribution licensing and hardware acceptance remain separate gates.
+
+The follow-up Windows frozen build and notice audit passed; fresh first-launch/close-during-save and reopen smoke checks both exited zero. Evidence: `.tmp/mac-review-fixes-tests.log`, `.tmp/mac-review-fixes-build.log`, `.tmp/mac-followup-frozen-01`. Mac harness generation is tested here; actual Swift compilation and Mac preservation/reopen acceptance remain pending.

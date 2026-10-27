@@ -16,10 +16,14 @@ function setup(api){const errors=[],c={document:{body:{inert:false}},prefs:{them
  await retry.c.postWindowsPreferences({compact:false,alwaysOnTop:false});assert.equal((await retry.c.beginNativeClose()).ready,false);retry.c.cancelNativeClose('Disk full');assert.equal(retry.c.document.body.inert,false);retry.c.window.pywebview.api.save_preferences=async()=>{};assert.equal((await retry.c.beginNativeClose()).ready,true,'A later Close retries the failed preference write without requiring another UI change');
  // Execute the actual badge/banner logic for disconnected, failed-service,
  // stale and normal states; never contact the service or a device.
- const nodes={connectionStatus:{dataset:{}},demoBanner:{hidden:true}};
+ const nodes={connectionStatus:{dataset:{}},demoBanner:{hidden:true},sampleAge:{},footerConnection:{}};
  const labelSource=source.slice(source.indexOf('const simulated='),source.indexOf(" number('forward'",source.indexOf('const simulated=')));
- const labels={$:id=>nodes[id]};vm.createContext(labels);
- for(const status of ['disconnected','stale','error']){Object.assign(labels,{snapshot:{offline_only:true},state:{status},live:false});vm.runInContext('{'+labelSource+'}',labels);assert.equal(nodes.connectionStatus.textContent,'SIMULATOR');assert.equal(nodes.demoBanner.hidden,false);assert.equal(nodes.connectionStatus.dataset.state,status);}
+ const footerStart=source.indexOf(" $('sampleAge')");
+ const footerSource=source.slice(footerStart,source.indexOf('\n}',footerStart));
+ const labels={$:id=>nodes[id],paintControls:()=>{}};vm.createContext(labels);
+ for(const status of ['disconnected','stale','error']){Object.assign(labels,{snapshot:{offline_only:true,connection:{mode:'usb',port:''}},state:{status},live:false});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,'Simulator · no hardware connection');assert.equal(nodes.connectionStatus.textContent,'SIMULATOR');assert.equal(nodes.demoBanner.hidden,false);assert.equal(nodes.connectionStatus.dataset.state,status);}
  Object.assign(labels,{snapshot:{offline_only:false},state:{status:'live',demo:false},live:true});vm.runInContext('{'+labelSource+'}',labels);assert.equal(nodes.connectionStatus.textContent,'CONNECTED');assert.equal(nodes.demoBanner.hidden,true);
+ for(const [connection,expected] of [[{mode:'usb',port:'COM10'},'COM10'],[{mode:'usb',port:''},'USB · select amplifier port'],[{mode:'tcp',host:'192.0.2.10',tcp_port:1500},'TCP/IP · 192.0.2.10:1500']]){Object.assign(labels,{snapshot:{offline_only:false,connection},state:{status:'error'},live:false});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,expected);}
+ Object.assign(labels,{snapshot:{offline_only:false,connection:{mode:'simulator'}},state:{status:'live',demo:true},live:true});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,'Simulator · no hardware connection');
  console.log('PASS: serialized native preference saves, snapshots, failure recovery and persistent simulation labeling.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

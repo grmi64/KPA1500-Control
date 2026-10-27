@@ -25,3 +25,5 @@ Run `scripts/test-windows.ps1`, then `scripts/build-windows.ps1`. The build incl
 Dependency notices are version-specific. The application currently has no confirmed root distribution license; third-party notices do not grant a KPA application release license. This is a local review artifact, not a signed release or Store submission. See WINDOWS-PORT-STATUS.md for evidence and remaining acceptance.
 
 Closing waits asynchronously for pending preference saves. If saving fails or times out, the window remains open and reports the error. Correct the storage problem and close again to retry the preference save. This mechanism does not retry any amplifier commands.
+
+For isolated Mac cross-platform review, see MAC-REVIEW.md. Its stable review-origin solution applies only to the generated review wrapper; production Mac behavior is unchanged.
