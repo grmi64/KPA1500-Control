@@ -1,10 +1,14 @@
 """User-requested, bounded identification only. Never sends operating commands."""
 import concurrent.futures,ipaddress,subprocess,threading
 from protocol import Protocol
+from platform_paths import WINDOWS
 from transport import SerialTransport,TCPTransport,BAUDS
 
 def local_targets():
  """At most 254 addresses on the default local IPv4 interface; no routed scan."""
+ if WINDOWS:
+  from windows_network import local_targets as windows_targets
+  return windows_targets()
  route=subprocess.run(['/sbin/route','-n','get','default'],capture_output=True,text=True,timeout=2,check=True).stdout
  interface=next((line.split(':',1)[1].strip() for line in route.splitlines() if line.strip().startswith('interface:')),None)
  if not interface or not interface.isalnum():raise ValueError('No local network interface found. Use manual connection settings.')
@@ -34,27 +38,40 @@ def identify(candidate,cancel,serial_factory=SerialTransport,tcp_factory=TCPTran
  return None
 
 class Discovery:
- def __init__(self):self.lock=threading.RLock();self.cancel=threading.Event();self.running=False;self.results=[];self.message='';self.thread=None
+ def __init__(self,offline=False):self.offline=offline;self.checked=0;self.total=0;self.lock=threading.RLock();self.cancel=threading.Event();self.running=False;self.results=[];self.message='';self.thread=None
  def snapshot(self):
-  with self.lock:return dict(running=self.running,results=list(self.results),message=self.message)
+  with self.lock:return dict(running=self.running,results=list(self.results),message=self.message,checked=self.checked,total=self.total,demo=self.offline)
  def start(self,usb_ports,baud,tcp_port):
   if type(baud) is not int or baud not in BAUDS:raise ValueError('Choose a supported USB baud rate.')
   if type(tcp_port) is not int or not 1<=tcp_port<=65535:raise ValueError('Choose a TCP port from 1 to 65535.')
   with self.lock:
    if self.running:raise ValueError('Discovery is already running.')
-   self.running=True;self.results=[];self.message='Searching USB and the local network…';self.cancel=threading.Event()
+   self.running=True;self.results=[];self.checked=0;self.total=0;self.message='Simulating discovery…' if self.offline else 'Searching the local network; USB ports are listed passively.' if WINDOWS else 'Searching USB and the local network…';self.cancel=threading.Event()
    self.thread=threading.Thread(target=self.run,args=(list(usb_ports)[:16],baud,tcp_port),daemon=True);self.thread.start()
   return self.snapshot()
  def stop(self):self.cancel.set();return self.snapshot()
  def run(self,usb_ports,baud,tcp_port):
   warning='';failures=0
+  if self.offline:
+   with self.lock:self.total=4
+   for _ in range(4):
+    if self.cancel.wait(.25):break
+    with self.lock:self.checked+=1
+   with self.lock:
+    self.results=[] if self.cancel.is_set() else [dict(mode='simulator',demo=True)]
+    self.running=False;self.message='Simulated discovery cancelled.' if self.cancel.is_set() else 'Simulated KPA1500 found. Select it, then click Connect. No devices or network were scanned.'
+   return
   try:
-   candidates=[dict(mode='usb',port=p,baud=baud) for p in usb_ports]
-   try:candidates += [dict(mode='tcp',host=h,tcp_port=tcp_port) for h in local_targets()]
-   except (OSError,ValueError,subprocess.SubprocessError):warning=' Local network discovery unavailable; use manual IP settings.'
+   candidates=[] if WINDOWS else [dict(mode='usb',port=p,baud=baud) for p in usb_ports]
+   if WINDOWS:warning=' USB ports are listed passively in Connection; select the amplifier port explicitly. No USB identity probes sent.'
+   try:candidates += [dict(mode='tcp',host=h,tcp_port=tcp_port) for h in local_targets()[:254]]
+   except (OSError,ValueError,subprocess.SubprocessError):warning+=' Local network discovery unavailable; use manual IP settings.'
+   candidates=candidates[:270]
+   with self.lock:self.total=len(candidates)
    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
     pending=[pool.submit(identify,c,self.cancel) for c in candidates]
     for future in concurrent.futures.as_completed(pending):
+     with self.lock:self.checked+=1
      try:result=future.result()
      except Exception:
       failures+=1;continue

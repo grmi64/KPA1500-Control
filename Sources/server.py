@@ -5,10 +5,11 @@ from pathlib import Path
 from urllib.parse import urlparse
 from engine import Controller,ports
 from discovery import Discovery
+from platform_paths import data_directory
 ROOT=Path(__file__).parent
 
-def handler_for(controller,token):
- discovery=Discovery();dispatch=threading.Lock()
+def handler_for(controller,token,activate=None,simulate_discovery=False):
+ discovery=Discovery(offline=simulate_discovery);dispatch=threading.Lock()
  prefix='/'+token+'/'
  class Handler(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
@@ -28,7 +29,7 @@ def handler_for(controller,token):
    name=path[len(prefix):]
    if name=='state':return self.reply(200,controller.snapshot())
    if name=='discovery':return self.reply(200,discovery.snapshot())
-   if name=='ports':return self.reply(200,{'ports':ports()})
+   if name=='ports':return self.reply(200,{'ports':[] if controller.offline_only else ports()})
    assets={'':('index.html','text/html; charset=utf-8'),'measurements.js':('measurements.js','text/javascript; charset=utf-8'),'app.js':('app.js','text/javascript; charset=utf-8'),'app.css':('app.css','text/css; charset=utf-8'),'kpa_meter_colors.js':('kpa_meter_colors.js','text/javascript; charset=utf-8')}
    if name not in assets:return self.reply(404,{'error':'Not found.'})
    filename,mime=assets[name];return self.reply(200,(ROOT/filename).read_bytes(),mime)
@@ -47,9 +48,11 @@ def handler_for(controller,token):
     if not isinstance(value,dict):raise ValueError('Expected an object.')
     action=path[len(prefix):]
     if action=='discover':
+     if controller.offline_only and not simulate_discovery:raise ValueError('Discovery is disabled in offline simulation. No device or network probes sent.')
      with controller.operation:
       if controller.snapshot()['state']['status'] not in ('disconnected','error'):raise ValueError('Disconnect the amplifier before discovery.')
-      result=discovery.start(ports(),value.get('baud',230400),value.get('tcp_port',1500))
+      result=discovery.start([] if controller.offline_only else ports(),value.get('baud',230400),value.get('tcp_port',1500))
+    elif action=='activate' and activate is not None:activate();result={'activated':True}
     elif action=='cancel-discovery':result=discovery.stop()
     elif action in ('connect','control') and discovery.snapshot()['running']:raise ValueError('Wait for discovery to finish or cancel it first.')
     elif action=='settings':
@@ -65,8 +68,8 @@ def handler_for(controller,token):
  return Handler
 
 def main():
- parser=argparse.ArgumentParser();parser.add_argument('--http-port',type=int,default=51980);parser.add_argument('--no-browser',action='store_true');parser.add_argument('--demo',action='store_true');parser.add_argument('--settings',type=Path,default=Path.home()/'Library/Application Support/com.grmi64.KPA1500Control/connection.json');args=parser.parse_args()
- controller=Controller(args.settings);token=secrets.token_urlsafe(24);server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token));server.daemon_threads=True
+ parser=argparse.ArgumentParser();parser.add_argument('--http-port',type=int,default=51980);parser.add_argument('--no-browser',action='store_true');parser.add_argument('--demo',action='store_true');parser.add_argument('--settings',type=Path,default=data_directory()/'connection.json');args=parser.parse_args()
+ controller=Controller(args.settings,offline_only=args.demo);token=secrets.token_urlsafe(24);server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token));server.daemon_threads=True
  if args.demo:controller.connect({'mode':'simulator'})
  else:controller.startup()
  # SIGTERM closes USB worker too; Quit should not leave a reader behind.
