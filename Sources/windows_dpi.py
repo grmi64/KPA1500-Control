@@ -42,8 +42,8 @@ def _callback(function):
 
 class DpiWindowHook:
  """Observe native DPI messages even when WinForms' managed event is disabled."""
- def __init__(self,handle,changed,prepare=None,minimized=None):
-  self.handle=handle;self.changed=changed;self.prepare=prepare;self.minimized=minimized;self.installed=False;self.identity=id(self);self.notifications=0;self.last_error=None
+ def __init__(self,handle,changed,prepare=None,minimized=None,restored=None):
+  self.handle=handle;self.changed=changed;self.prepare=prepare;self.minimized=minimized;self.restored=restored;self.installed=False;self.identity=id(self);self.notifications=0;self.last_error=None
   self.api=_comctl32();self.callback=_callback(self._message)
   self.api.SetWindowSubclass.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_size_t,ctypes.c_size_t];self.api.SetWindowSubclass.restype=ctypes.c_int
   self.api.RemoveWindowSubclass.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_size_t];self.api.RemoveWindowSubclass.restype=ctypes.c_int
@@ -66,6 +66,9 @@ class DpiWindowHook:
    if message==WM_NCDESTROY:self.close()
   except Exception:logging.exception('DPI message inspection failed')
   result=self.api.DefSubclassProc(handle,message,wparam,lparam)
+  if message==0x0005 and wparam==0 and self.restored:
+   try:self.restored()
+   except Exception as exc:self.last_error=str(exc);logging.exception('Normal-window restore handling failed')
   if message==WM_DPICHANGED:
    self.notifications+=1
    try:

@@ -23,9 +23,9 @@ class WindowRestoreTests(unittest.TestCase):
     self.assertEqual(bridge._full_size,(1000,800));self.assertEqual((window.width,window.height),(410,540));self.assertEqual(window.native.WindowState,0)
     bridge._apply_display({'compact':False,'alwaysOnTop':False})
     self.assertEqual((window.width,window.height),(1000,800));self.assertEqual(window.native.WindowState,0)
- def test_normal_full_size_is_retained_without_dpi_reconversion(self):
-  with patch.dict(sys.modules,self.modules()),patch('windows_app.keep_visible'):
-   window=self.window(0);window.width=900;window.height=750;bridge=DisplayBridge();bridge._window=window
+ def test_normal_full_size_uses_native_rounding_instead_of_floored_getters(self):
+  with patch.dict(sys.modules,self.modules()),patch('windows_app.window_dpi',return_value=120),patch('windows_app.keep_visible'):
+   window=self.window(0);window.native.Bounds=types.SimpleNamespace(Width=1125,Height=938);window.width=899;window.height=749;bridge=DisplayBridge();bridge._window=window
    bridge._apply_display({'compact':True,'alwaysOnTop':False});bridge._apply_display({'compact':False,'alwaysOnTop':False})
    self.assertEqual((window.width,window.height),(900,750))
  def test_normal_size_for_close_uses_restore_bounds_when_maximized(self):

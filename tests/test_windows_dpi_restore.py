@@ -15,6 +15,7 @@ class MinimizedDpiRestoreTests(unittest.TestCase):
   modules={'System.Drawing':types.SimpleNamespace(Rectangle=self.rect,Size=lambda w,h:(w,h)),'System.Windows.Forms':types.SimpleNamespace(Screen=screen,FormWindowState=types.SimpleNamespace(Normal=0,Minimized=1,Maximized=2))}
   item=patch.dict('sys.modules',modules);item.start();self.addCleanup(item.stop)
   with patch('windows_app.window_dpi',return_value=192):self.sizing=WindowDpiSizing(self.window)
+  self.window._dpi_sizing=self.sizing
  def test_clamped_full_ignores_unscaled_windows_suggestion(self):
   self.assertEqual(self.sizing.prepare((-13,-13,1946,1226),120),(-13,-13,1200,750))
  def test_nonclamped_full_and_compact_restore_sizes(self):
@@ -84,3 +85,72 @@ class MinimizedDpiRestoreTests(unittest.TestCase):
    target=self.sizing.prepare((0,0,1946,1226),120);self.form.WindowState=0;self.sizing.changed(target)
    with self.assertLogs(level='ERROR'):queued.pop()()
   self.assertEqual(self.sizing.last_error,'Native bounds rejected')
+ def maximize_after_dpi(self):
+  self.sizing.minimized();self.form.WindowState=2;self.form.IsDisposed=False;queued=[];self.form.BeginInvoke=queued.append
+  suggested=(0,0,1920,1200)
+  with patch.dict('sys.modules',{'System':types.SimpleNamespace(Action=lambda fn:fn)}),patch('windows_app.window_dpi',return_value=120):
+   self.assertEqual(self.sizing.prepare(suggested,120),suggested)
+   self.sizing.changed(suggested)
+  return queued
+ def test_maximized_dpi_keeps_max_bounds_and_close_reopen_normal_size(self):
+  import tempfile
+  from windows_preferences import Preferences
+  before=(self.form.Bounds.Width,self.form.Bounds.Height);queued=self.maximize_after_dpi()
+  with patch('windows_app.window_dpi',return_value=120),patch('windows_app.set_window_bounds') as native:
+   queued.pop()();self.assertEqual(normal_window_size(self.window),(960,600));native.assert_not_called()
+   with tempfile.TemporaryDirectory() as folder:
+    p=Path(folder)/'view.json';Preferences(p).save({'full_size':list(normal_window_size(self.window))})
+    self.assertEqual(Preferences(p).snapshot()['full_size'],[960,600])
+  self.assertEqual(self.form.WindowState,2);self.assertEqual((self.form.Bounds.Width,self.form.Bounds.Height),before)
+ def test_later_normal_restore_consumes_pending_and_corrects_late_native_resize(self):
+  queued=self.maximize_after_dpi();self.form.WindowState=0;self.form.Bounds=self.rect(0,0,1920,1200)
+  with patch.dict('sys.modules',{'System':types.SimpleNamespace(Action=lambda fn:fn)}),patch('windows_app.window_dpi',return_value=120),patch('windows_app.set_window_bounds') as native:
+   self.sizing.restored();self.form.Bounds=self.rect(0,0,1920,1200)
+   while queued:queued.pop(0)()
+  self.assertEqual((self.form.Bounds.Width,self.form.Bounds.Height),(1200,750));self.assertIsNone(self.window._pending_dpi_bounds);self.assertTrue(native.called)
+ def test_maximized_dpi_full_compact_roundtrip_keeps_normal_logical_size(self):
+  from windows_app import DisplayBridge
+  queued=self.maximize_after_dpi();bridge=DisplayBridge();bridge._window=self.window
+  def resize(width,height):
+   self.assertEqual(self.form.WindowState,0);self.window.width=width;self.window.height=height
+   self.form.Bounds=self.rect(0,0,round(width*1.25),round(height*1.25))
+  self.window.resize=resize
+  with patch('windows_app.window_dpi',return_value=120),patch('windows_app.set_window_bounds') as native:
+   bridge._apply_display({'compact':True,'alwaysOnTop':False});self.assertEqual(bridge._full_size,(960,600))
+   while queued:queued.pop(0)()
+   native.assert_not_called();self.assertEqual((self.window.width,self.window.height),(410,540))
+   bridge._apply_display({'compact':False,'alwaysOnTop':False})
+   self.assertEqual((self.window.width,self.window.height),(960,600));self.assertIsNone(self.window._pending_dpi_bounds)
+ def test_further_dpi_change_while_maximized_scales_pending_normal_size(self):
+  self.maximize_after_dpi()
+  with patch.dict('sys.modules',{'System':types.SimpleNamespace(Action=lambda fn:fn)}),patch('windows_app.window_dpi',return_value=144):
+   suggestion=(0,0,1920,1200);self.assertEqual(self.sizing.prepare(suggestion,144),suggestion);self.sizing.changed(suggestion)
+   self.assertEqual(normal_window_size(self.window),(960,600))
+ def test_reminimize_after_maximized_dpi_uses_corrected_restore_size(self):
+  self.maximize_after_dpi();self.form.WindowState=1;self.sizing.minimized()
+  self.assertEqual(self.sizing.restore_size,(1200,750,120))
+  self.assertEqual(self.sizing.prepare((0,0,1920,1200),192),(0,0,1920,1200))
+ def test_user_resize_discards_pending_maximized_restore(self):
+  self.maximize_after_dpi();self.sizing.discard_restore();self.assertIsNone(self.window._pending_dpi_bounds)
+  self.form.WindowState=0;self.window.width=700;self.window.height=500;self.form.Bounds=self.rect(0,0,875,625)
+  with patch('windows_app.window_dpi',return_value=120):self.assertEqual(normal_window_size(self.window),(700,500))
+ def test_native_restored_notification_runs_after_default_processing(self):
+  api=Mock();api.SetWindowSubclass.return_value=1;events=[]
+  api.DefSubclassProc.side_effect=lambda *args:events.append('default') or 123
+  with patch('windows_dpi._comctl32',return_value=api),patch('windows_dpi._callback',side_effect=lambda fn:fn):
+   hook=DpiWindowHook(456,Mock(),restored=lambda:events.append('restored'))
+   hook._message(456,0x0005,0,0,hook.identity,0)
+  self.assertEqual(events,['default','restored'])
+
+ def test_repeated_full_compact_capture_does_not_accumulate_floor_drift(self):
+  from windows_app import DisplayBridge
+  self.form.WindowState=0;self.form.Bounds=self.rect(0,0,1198,748);self.window.width=958;self.window.height=598
+  bridge=DisplayBridge();bridge._window=self.window
+  def resize(width,height):
+   self.form.Bounds=self.rect(0,0,int(width*1.25),int(height*1.25))
+   self.window.width=int(self.form.Bounds.Width/1.25);self.window.height=int(self.form.Bounds.Height/1.25)
+  self.window.resize=resize
+  with patch('windows_app.window_dpi',return_value=120):
+   for _ in range(20):
+    bridge._apply_display({'compact':True,'alwaysOnTop':False});bridge._apply_display({'compact':False,'alwaysOnTop':False})
+    self.assertEqual(normal_window_size(self.window),(958,598))
