@@ -18,3 +18,7 @@ h1 .operator-callsign{display:inline-block;font-size:13px;letter-spacing:.08em;f
 body.compact .metric.forward{order:0}body.compact .metric.swr{order:1}body.compact .metric.temp{order:2}body.compact .metric.selectable{order:3}.section-toggle{background:transparent;border:0;padding:3px 0;color:var(--muted);font-size:13px;font-weight:650;text-align:left}.instrument>.section-toggle{margin-top:12px}.section-heading h2{margin:0}.card:has(>.section-heading [aria-expanded=false])>.section-heading{margin-bottom:0}
 
 .fan-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}.fan-setting select{min-width:105px}
+
+.discovery{display:flex;align-items:center;flex-wrap:wrap;gap:12px 18px;margin:16px 0}.discovery>label{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.discovery>p{flex-basis:100%;margin:0}.discovery-progress{display:inline-flex;align-items:center;gap:8px;color:var(--mint);font-weight:650}.discovery-progress[hidden]{display:none}.discovery-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--mint);border-radius:50%;animation:discovery-spin 1s linear infinite}@keyframes discovery-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.discovery-spinner{animation:none}}
+
+.discovery-notice{flex:1 1 280px;min-width:0;color:var(--muted);font-size:12px;line-height:1.5}.discovery>label{flex-basis:100%}

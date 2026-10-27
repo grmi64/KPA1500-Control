@@ -7,3 +7,6 @@ backups/
 live-usb.png
 
 test-evidence/
+
+.tmp/
+.venv/

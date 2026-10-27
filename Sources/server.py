@@ -4,9 +4,11 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 from engine import Controller,ports
+from discovery import Discovery
 ROOT=Path(__file__).parent
 
 def handler_for(controller,token):
+ discovery=Discovery();dispatch=threading.Lock()
  prefix='/'+token+'/'
  class Handler(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
@@ -25,11 +27,14 @@ def handler_for(controller,token):
    if not path.startswith(prefix):return self.reply(404,{'error':'Not found.'})
    name=path[len(prefix):]
    if name=='state':return self.reply(200,controller.snapshot())
+   if name=='discovery':return self.reply(200,discovery.snapshot())
    if name=='ports':return self.reply(200,{'ports':ports()})
    assets={'':('index.html','text/html; charset=utf-8'),'measurements.js':('measurements.js','text/javascript; charset=utf-8'),'app.js':('app.js','text/javascript; charset=utf-8'),'app.css':('app.css','text/css; charset=utf-8'),'kpa_meter_colors.js':('kpa_meter_colors.js','text/javascript; charset=utf-8')}
    if name not in assets:return self.reply(404,{'error':'Not found.'})
    filename,mime=assets[name];return self.reply(200,(ROOT/filename).read_bytes(),mime)
   def do_POST(self):
+   with dispatch:self.post()
+  def post(self):
    if not self.host_ok() or self.headers.get('X-Amp-Token')!=token:return self.reply(403,{'error':'Local session token required.'})
    origin=self.headers.get('Origin')
    if origin and origin!='http://127.0.0.1:'+str(self.server.server_port):return self.reply(403,{'error':'Foreign origin rejected.'})
@@ -41,7 +46,13 @@ def handler_for(controller,token):
     value=json.loads(self.rfile.read(length))
     if not isinstance(value,dict):raise ValueError('Expected an object.')
     action=path[len(prefix):]
-    if action=='settings':
+    if action=='discover':
+     with controller.operation:
+      if controller.snapshot()['state']['status'] not in ('disconnected','error'):raise ValueError('Disconnect the amplifier before discovery.')
+      result=discovery.start(ports(),value.get('baud',230400),value.get('tcp_port',1500))
+    elif action=='cancel-discovery':result=discovery.stop()
+    elif action in ('connect','control') and discovery.snapshot()['running']:raise ValueError('Wait for discovery to finish or cancel it first.')
+    elif action=='settings':
      with controller.operation:controller.save_settings(value)
      result=controller.snapshot()
     elif action=='connect':result=controller.connect(value)
@@ -50,6 +61,7 @@ def handler_for(controller,token):
     else:return self.reply(404,{'error':'Unknown operation.'})
     return self.reply(200,result)
    except (OSError,ValueError,RuntimeError,TypeError) as exc:return self.reply(400,{'error':str(exc)})
+ Handler.discovery=discovery
  return Handler
 
 def main():
@@ -63,5 +75,9 @@ def main():
  print('KPA1500 Control:',f'http://127.0.0.1:{server.server_port}/{token}/',flush=True)
  try:server.serve_forever(poll_interval=.2)
  except KeyboardInterrupt:pass
- finally:server.server_close();controller.disconnect()
+ finally:
+  server.RequestHandlerClass.discovery.stop()
+  thread=server.RequestHandlerClass.discovery.thread
+  if thread:thread.join(5)
+  server.server_close();controller.disconnect()
 if __name__=='__main__':multiprocessing.freeze_support();main()

@@ -1,4 +1,6 @@
-# KPA1500 Control 0.1.15
+# KPA1500 Control — Windows-port baseline 0.1.25
+
+This review branch preserves the installed Mac 0.1.25/build 26 source, including previously uncommitted discovery updates. The latest published release remains 0.1.21; no Windows build is included. Start with [WINDOWS-PORT-HANDOFF.md](WINDOWS-PORT-HANDOFF.md) and [BASELINE-AUDIT-2026-10-26.md](BASELINE-AUDIT-2026-10-26.md). Older version sections below are historical records.
 
 Standalone macOS amplifier monitor and operating panel. Open `dist/KPA1500 Control.app`.
 
@@ -125,3 +127,5 @@ JavaScript suites passed. Signed packaged simulator confirmed level 5 and return
 to Auto, with actual fan speed remaining independently reported. The operator manually stepped through the fan speeds successfully on the installed
 Mac build over USB. Fan-setting persistence across an amplifier power cycle has
 not been tested. No radio-keying or drive-power commands are sent.
+
+Auto Discovery (0.1.22): Disconnect first, select the USB baud and TCP port, then click Auto Discovery. It checks up to 16 available USB ports at that baud and up to 254 addresses on the default local IPv4 interface using identification queries only. Busy USB ports are skipped. Cancel stops queued work and lets bounded probes close. Select a verified result, then click Connect; discovery never saves settings or connects automatically. Powered-off devices and devices occupied by another TCP client may not appear. Manual IP/port and USB settings remain available. On networks larger than /24 the scan covers the computer's current /24; other subnets, IPv6 and other interfaces require manual settings. Discovery hardware acceptance is pending.
