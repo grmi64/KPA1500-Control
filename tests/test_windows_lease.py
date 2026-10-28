@@ -185,6 +185,6 @@ class ActivationRendezvousTests(unittest.TestCase):
   finally:server.shutdown();server.server_close();thread.join()
  def test_non_windows_metadata_path_is_unchanged(self):
   with patch.object(self.module,'WINDOWS',False),patch.object(win,'activation_directory',side_effect=AssertionError('Windows path queried')):
-   path=self.root/'mac-review.json';self.assertEqual(self.module.Instance(path).path,path.with_suffix('.instance.json'))
+   path=self.root/'mac-review.json';self.assertEqual(self.module.Instance(path).path,path.resolve().with_suffix('.instance.json'))
 
 if __name__=='__main__':unittest.main()
