@@ -75,7 +75,7 @@
     "Multiple-monitor acceptance pending",
     "Final signed-package hardware acceptance pending; older live tests not relabeled",
     "KPA1500 Store identity/MSIX/WACK not performed",
-    "Public support/privacy drafts require owner approval",
+    "GitHub Issues support channel approved; installation/support/data-handling text finalized locally; public privacy-policy URL and publication pending",
     "Distribution documents need synchronization before any repackaging; do not reuse these hashes for a regenerated ZIP"
   ],
   "hardware_connected_during_final_candidate_tests": false,
@@ -88,5 +88,14 @@
     "description": "Repository root, the directory containing this JSON record and the repository checksum file."
   },
   "checksum_path_base": "Directory containing WINDOWS-CANDIDATE-SHA256SUMS.txt. Run checksum tools from that directory.",
-  "companion_layout": "The standalone companion record uses ../ paths to the sibling ZIP and extracted KPA1500 Control directory; do not interchange the two checksum files."
+  "companion_layout": "The standalone companion record uses ../ paths to the sibling ZIP and extracted KPA1500 Control directory; do not interchange the two checksum files.",
+  "user_documentation": {
+    "status": "finalized locally, not inserted into the tested ZIP or published",
+    "installation": "WINDOWS-INSTALL.md",
+    "support": "WINDOWS-SUPPORT.md",
+    "data_handling": "WINDOWS-DATA-HANDLING.md",
+    "support_channel": "https://github.com/grmi64/KPA1500-Control/issues",
+    "personal_email_listed": false,
+    "public_privacy_policy_url": null
+  }
 }

@@ -43,3 +43,5 @@ Dependency notices are version-specific. The owner selected the MIT License for 
 Closing waits asynchronously for pending preference saves. If saving fails or times out, the window remains open and reports the error. Correct the storage problem and close again to retry the preference save. This mechanism does not retry any amplifier commands.
 
 For isolated Mac cross-platform review, see MAC-REVIEW.md. Its stable review-origin solution applies only to the generated review wrapper; production Mac behavior is unchanged.
+
+For finalized local user documentation, see [installation](WINDOWS-INSTALL.md), [support](WINDOWS-SUPPORT.md) and [data handling](WINDOWS-DATA-HANDLING.md). These newer source documents have not replaced the build-time documents inside the tested signed ZIP.

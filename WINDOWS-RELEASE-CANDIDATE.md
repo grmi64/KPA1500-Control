@@ -66,7 +66,7 @@ Downloaded-file marking was synthetic, not a real public browser download. No-wa
 - **Final signed-package hardware acceptance: pending.** Earlier USB/Ethernet source-host results remain historical evidence for their own versions/harnesses. They are not acceptance of this exact ZIP. Hardware work requires separate authorization.
 - **Distribution route and public release approval: pending.** This candidate remains prerelease. Version/prerelease designation must be reviewed before public release.
 - **Microsoft Store identity, MSIX/WACK and Store policy/listing acceptance: not performed for KPA1500.** OM Power Control's identity and Store results do not apply to KPA1500.
-- **Public privacy/support details: require owner review.** Draft support and data-handling notes are in the release notes; no account email is exposed and no public policy was published.
+- **Support and data-handling text finalized locally.** The owner selected this repository's GitHub Issues as the support channel, without a personal email listing. WINDOWS-INSTALL.md, WINDOWS-SUPPORT.md and WINDOWS-DATA-HANDLING.md hold the finalized local text. A public privacy-policy URL and publication remain pending.
 - **Distribution-document synchronization:** source documentation was consolidated after the tested ZIP was created. The immutable ZIP contains its original build-time documentation, including historical unsigned/development wording. Use this report for current signing/test status. Before release, reconcile the docs shipped to users; any regenerated ZIP needs new checksums and artifact-specific validation rather than reusing this ZIP's hash.
 
 ## Evidence and artifact preservation
