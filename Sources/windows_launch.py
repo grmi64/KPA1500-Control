@@ -1,19 +1,19 @@
 """Explicit Windows launch modes. This module never opens a transport."""
 import os,subprocess,sys,threading
 from pathlib import Path
-from platform_paths import serial_port
+from platform_paths import serial_port,settings_path
 from transport import BAUDS,tcp_endpoint
 MODES={'simulation':'Simulation','read-only':'Read-only telemetry','hardware':'Hardware control'}
 def mode_settings(base,mode):
  if mode not in MODES:raise ValueError('Choose Simulation, Read-only or Hardware control.')
- base=Path(base).resolve()
+ base=settings_path(base)
  return base if mode=='simulation' else base.with_name(base.stem+'.'+mode+base.suffix)
 def prepare_reopen(value,snapshot,base):
  if not isinstance(value,dict) or value.get('mode') not in MODES:raise ValueError('Choose Simulation, Read-only or Hardware control.')
  if snapshot['state']['status']!='disconnected' or any(a.get('status')=='queued' for a in snapshot['actions']):raise ValueError('Disconnect before changing launch mode.')
  mode=value['mode']
  if value.get('confirmed') is not True:raise ValueError('Confirm reopening in the selected launch mode.')
- args=[{'simulation':'--demo','read-only':'--read-only','hardware':'--hardware'}[mode],'--mode-handoff','--http-port','0','--settings='+str(Path(base).resolve())]
+ args=[{'simulation':'--demo','read-only':'--read-only','hardware':'--hardware'}[mode],'--mode-handoff','--http-port','0','--settings='+str(settings_path(base))]
  if mode!='simulation':
   connection=value.get('connection')
   if not isinstance(connection,dict) or connection.get('mode') not in ('usb','tcp'):raise ValueError('Select USB or TCP/IP and enter its connection details above.')

@@ -1,4 +1,4 @@
-import json,os,pathlib,subprocess,sys,tempfile,threading,types,unittest,urllib.request,urllib.error
+import json,os,pathlib,subprocess,sys,tempfile,threading,types,unittest,urllib.request,urllib.error,uuid
 from unittest.mock import patch,Mock
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'Sources'))
 import platform_paths,endpoint_lock,transport
@@ -36,8 +36,11 @@ class FakeSerial:
 @unittest.skipUnless(sys.platform=='win32','Windows serial adapter and OS byte-range lease')
 class SerialTests(unittest.TestCase):
  def setUp(self):
-  self.temp=tempfile.TemporaryDirectory();self.p=patch('endpoint_lock.lock_directory',return_value=pathlib.Path(self.temp.name));self.p.start()
- def tearDown(self):self.p.stop();self.temp.cleanup()
+  self.temp=tempfile.TemporaryDirectory();self.key='offline-platform:'+uuid.uuid4().hex
+  self.p=patch('endpoint_lock.lock_directory',return_value=pathlib.Path(self.temp.name));self.p.start()
+  # Fake-serial tests must not contend with an actual user's COM lease.
+  self.native=patch('port_lock.EndpointLock',side_effect=lambda key:endpoint_lock.EndpointLock(self.key+':'+key));self.native.start()
+ def tearDown(self):self.native.stop();self.p.stop();self.temp.cleanup()
  def test_com10_exclusion_bounded_io_and_reconnect(self):
   t=transport.WindowsSerialTransport('com10',230400,FakeSerial);wire=t.serial
   try:
@@ -59,10 +62,10 @@ class SerialTests(unittest.TestCase):
     send.assert_called_once_with(b'^OS1;')
   finally:t.close()
  def test_lease_excludes_another_process(self):
-  lease=endpoint_lock.EndpointLock('cross-process-test');lease.acquire()
-  code="import sys;sys.path.insert(0,'Sources');from pathlib import Path;import endpoint_lock;endpoint_lock.lock_directory=lambda:Path(sys.argv[1]);endpoint_lock.EndpointLock('cross-process-test').acquire()"
+  lease=endpoint_lock.EndpointLock(self.key);lease.acquire()
+  code="import sys;sys.path.insert(0,'Sources');from pathlib import Path;import endpoint_lock;endpoint_lock.lock_directory=lambda:Path(sys.argv[1]);endpoint_lock.EndpointLock(sys.argv[2]).acquire()"
   try:
-   child=subprocess.run([sys.executable,'-B','-c',code,self.temp.name],cwd=pathlib.Path(__file__).resolve().parents[1],capture_output=True,text=True)
+   child=subprocess.run([sys.executable,'-B','-c',code,self.temp.name,self.key],cwd=pathlib.Path(__file__).resolve().parents[1],capture_output=True,text=True)
    self.assertNotEqual(child.returncode,0);self.assertIn('already in use',child.stderr)
   finally:lease.release()
 
