@@ -10,7 +10,7 @@ Installation text for the local Windows 0.1.25/build 26 candidate. No public dow
 
 Use the complete approved Windows ZIP and the checksum records for that exact ZIP. The current signed candidate is named in WINDOWS-CANDIDATE.json. In PowerShell, `Get-FileHash -Algorithm SHA256 -LiteralPath '<path-to-zip>'` reports the ZIP checksum for comparison.
 
-The repository records resolve their `dist/windows/...` paths from the repository root. Standalone companion records resolve `../...` paths from the companion documentation directory. Run checksum tools from the directory containing the selected checksum file; JSON consumers resolve artifact paths from the JSON file's directory and declared base. ZIP validation is available before extraction. The other checksum entries require the extracted app folder.
+The repository records resolve their `dist/windows/...` paths from the repository root. Standalone companion records resolve `../...` paths from the companion documentation directory. Run checksum tools from the directory containing the selected checksum file; JSON consumers resolve artifact paths from the JSON file's directory and declared base. ZIP and external signature-receipt validation are available before extraction. Keep that receipt beside the ZIP; its entries refer to files within the extracted application folder. EXE, config and license checksum entries require the extracted app folder.
 
 ## Extract and launch
 
@@ -18,6 +18,8 @@ The repository records resolve their `dist/windows/...` paths from the repositor
 2. Keep the extracted folder intact. `KPA1500 Control.exe`, `KPA1500 Control.exe.config`, `_internal`, licenses and notices must remain together. Running from inside the ZIP or copying the EXE alone is unsupported.
 3. In the EXE's Properties → Digital Signatures, check the publisher is **Gregory Miller** and Windows reports a valid signature. The tested candidate has a verified Microsoft timestamp. Cancel an unexpected security warning or publisher mismatch and report it through [support](WINDOWS-SUPPORT.md).
 4. Open `KPA1500 Control.exe`. A normal double-click launch starts in **Simulation**, with a SIMULATOR badge and no-hardware warning. No amplifier connection is needed for simulation.
+
+The final candidate also signs its previously unsigned bundled dependencies and preserves existing vendor signatures. A valid EXE signature alone does not verify the rest of the folder: use the exact ZIP checksum and keep the package intact. Do not remove download markers or disable Windows security to make a package run.
 
 The `.exe.config` is required for the application's .NET host to load bundled managed assemblies from an Internet-marked ZIP. It does not remove downloaded-file markers or change machine-wide Windows/.NET policy. Do not replace it with a config from a different package.
 

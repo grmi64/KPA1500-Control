@@ -16,7 +16,8 @@ Review screenshots and logs before posting: GitHub issues may be public. Remove 
 
 ## Initial checks
 
-- Verify the ZIP checksum and EXE publisher before running. Keep the complete extracted package and matching `.exe.config` together.
+- Verify the exact ZIP checksum and EXE publisher before running. Keep the complete signed payload and matching `.exe.config` together; an EXE signature alone does not validate the rest of the folder.
+- Report any Windows security warning and exact .NET/CoreCLR error. A blocked bundled dependency can surface as a runtime error even when .NET is installed; do not disable security or remove download markers as a workaround.
 - If WebView2 is unavailable, follow the app's Microsoft runtime repair guidance. Do not remove the host runtime as a troubleshooting step.
 - Simulation is the first diagnostic mode and does not require hardware. Connection and operating tests require separate operator planning and authorization.
 - Close other copies before diagnosing a busy-instance or endpoint-ownership message. Do not delete shared lock files while applications are running.

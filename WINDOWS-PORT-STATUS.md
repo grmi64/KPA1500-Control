@@ -416,3 +416,13 @@ document copies were updated separately; the signed EXE/ZIP and their checksums
 remain unchanged. Repackaging and artifact-specific validation are later steps.
 Physical multiple-monitor and final signed-package hardware acceptance remain
 pending. No app launch, hardware connection, commit or merge occurred here.
+
+## Complete-payload-signed main 9efe8c1 consolidation (2026-10-27)
+
+Current tested runtime/build source is 9efe8c119c0655333e52d4078f43b18f4675cdcc after PR #10. Earlier candidate sections above remain historical and do not identify the current ZIP. Code Integrity logs identified unsigned CFFI loading blocked under enforced Application Control in both older and newer EXE-only-signed packages; this surfaced as a misleading CoreCLR error. The complete payload is now signed: seven new signatures, 71 preserved, all 78 verified, with pre-sign provenance and post-sign byte-preservation checks.
+
+The exact new ZIP passed eight private non-Store MSIX/portable offline cases and separate clean first-launch/reopen; final-ZIP standard-user and reversible missing-WebView2 recovery; offline and Internet-enabled Explorer launches with synthetic markers on every extracted file. Both user-observed launches showed no warning and all 240 markers remained. No SmartScreen cloud verdict is independently claimed. The first missing-runtime guest was interrupted after user-observed guidance; a separate automated repeat verified exit 1 and same-profile recovery exit 0. Initial MSIX harness cleanup failure and completed retry remain separately recorded.
+
+Main source regressions passed 240 Python tests/two expected skips and all 12 JavaScript suites. The Mac agent reported exact PR #10 commit 5a077fe: 218 passes/24 expected skips, 12 JavaScript suites, Swift placement and unchanged 66 production fingerprints/geometry. This was tooling-only review without app launch; Windows signatures/junctions were not independently accepted on Mac.
+
+WINDOWS-RELEASE-CANDIDATE.md, WINDOWS-CANDIDATE.json and WINDOWS-CANDIDATE-SHA256SUMS.txt now name this exact artifact and document repository/standalone path bases. External companion documentation is generated under dist/windows/KPA1500-release-docs-main-9efe8c1. The tested EXE/ZIP/receipt remain unchanged. Shipped build-time candidate pointers require reviewed reconciliation before public release; repackaging requires new hashes and artifact-specific checks. Physical multiple-monitor and final signed-package hardware acceptance remain pending. Production Store identity/MSIX/WACK/certification is separate from the private feasibility package. No new app launch, signing, hardware, network, commit, merge or publication occurred during this consolidation.
