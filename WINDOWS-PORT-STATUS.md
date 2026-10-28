@@ -400,3 +400,19 @@ standalone and relocated-standalone layouts (15 artifact checks total). The
 signed EXE/ZIP were unchanged. Evidence: .tmp/main-51c3106/path-base-verification.json.
 Physical multiple-monitor testing remains pending; no app launch, hardware
 connection, commit, merge or publication occurred in this follow-up.
+
+## Finalized local user documentation (2026-10-27)
+
+The owner selected KPA1500-Control GitHub Issues as the support channel with no
+personal email listing. WINDOWS-INSTALL.md, WINDOWS-SUPPORT.md and
+WINDOWS-DATA-HANDLING.md contain the finalized local installation, reporting and
+data-handling text. WINDOWS-RELEASE-NOTES.md links these documents. The text
+clarifies mode handoffs versus normal Simulation launches, settings/WebView2
+storage, session diagnostics, shared endpoint-lock files and the optional
+loopback telemetry feed (which does not use the private UI token).
+
+No public privacy-policy URL was assigned and nothing was published. Companion
+document copies were updated separately; the signed EXE/ZIP and their checksums
+remain unchanged. Repackaging and artifact-specific validation are later steps.
+Physical multiple-monitor and final signed-package hardware acceptance remain
+pending. No app launch, hardware connection, commit or merge occurred here.
