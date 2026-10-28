@@ -8,7 +8,7 @@ Installation text for the local Windows 0.1.25/build 26 candidate. No public dow
 - Microsoft Edge WebView2 Evergreen Runtime. Python and Node are bundled or unnecessary on the target PC; neither needs a separate installation.
 - A standard Windows user account is sufficient to run the portable application. Installing or repairing a prerequisite may separately require Windows administrator approval.
 
-Use the complete approved Windows ZIP and the checksum records for that exact ZIP. The current signed candidate is named in WINDOWS-CANDIDATE.json. In PowerShell, `Get-FileHash -Algorithm SHA256 -LiteralPath '<path-to-zip>'` reports the ZIP checksum for comparison.
+Use the complete approved Windows ZIP and the checksum records for that exact ZIP. The current ZIP is identified by the external WINDOWS-CANDIDATE.json supplied with it. The ZIP hash is intentionally external; the bundled validation report identifies the payload and packaging source without a circular archive hash. In PowerShell, `Get-FileHash -Algorithm SHA256 -LiteralPath '<path-to-zip>'` reports the ZIP checksum for comparison.
 
 The repository records resolve their `dist/windows/...` paths from the repository root. Standalone companion records resolve `../...` paths from the companion documentation directory. Run checksum tools from the directory containing the selected checksum file; JSON consumers resolve artifact paths from the JSON file's directory and declared base. ZIP and external signature-receipt validation are available before extraction. Keep that receipt beside the ZIP; its entries refer to files within the extracted application folder. EXE, config and license checksum entries require the extracted app folder.
 

@@ -1,6 +1,6 @@
-34ca808bb10c72be73395368681eeaa8a677c1d7d8b8b61537be476d47a6b490  dist/windows/KPA1500-Control-0.1.25-build26-main-9efe8c1-Windows-x64-signed.zip
-f9348de5b08addc2b1abbe51f91289f32911bc7d9db78539429aa88a3d807e06  dist/windows/KPA1500 Control/KPA1500 Control.exe
-75fbb66004ca2416ffb7029467c15e0a21a7b71ee6449d3656a2a97bd49bdd89  dist/windows/KPA1500 Control/KPA1500 Control.exe.config
-309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/KPA1500 Control/LICENSE
-309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/KPA1500 Control/_internal/LICENSE
-37ac68dce23a3d242528b6fb302f77d0d5cb8d4d115574bc8ab3875540043a40  dist/windows/KPA1500-Control-0.1.25-build26-main-9efe8c1-Windows-x64-signed.signatures.json
+5ef5a7ccb57434e7e7a3389339e64f096acee34806f60252a8d82d34abf71c00  dist/windows/repack-main-8de9337-r2/KPA1500-Control-0.1.25-build26-docs-8de9337-r2-Windows-x64-signed.zip
+f9348de5b08addc2b1abbe51f91289f32911bc7d9db78539429aa88a3d807e06  dist/windows/repack-main-8de9337-r2/KPA1500 Control/KPA1500 Control.exe
+75fbb66004ca2416ffb7029467c15e0a21a7b71ee6449d3656a2a97bd49bdd89  dist/windows/repack-main-8de9337-r2/KPA1500 Control/KPA1500 Control.exe.config
+309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/repack-main-8de9337-r2/KPA1500 Control/LICENSE
+309ac5cf14412223b574b177f908bbb9038767cd758ff278881c51ee47221277  dist/windows/repack-main-8de9337-r2/KPA1500 Control/_internal/LICENSE
+37ac68dce23a3d242528b6fb302f77d0d5cb8d4d115574bc8ab3875540043a40  dist/windows/repack-main-8de9337-r2/KPA1500-Control-0.1.25-build26-docs-8de9337-r2-Windows-x64-signed.signatures.json
