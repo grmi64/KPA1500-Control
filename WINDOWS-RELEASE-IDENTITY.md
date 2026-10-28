@@ -16,7 +16,7 @@
 | Icon | Existing project artwork, Assets/AppIcon.ico |
 | Application license | MIT; root LICENSE |
 | PE release status | Prerelease/development candidate |
-| Signing/publication | Final candidate from main 51c3106 signed as Gregory Miller; not published. See WINDOWS-RELEASE-CANDIDATE.md. |
+| Signing/publication | Final candidate from main 9efe8c1: complete payload signed/verified, 78 PE files; not published. See WINDOWS-RELEASE-CANDIDATE.md. |
 | Microsoft Store package identity | Not reserved or assigned by this step |
 
 Sources/version.py remains the authoritative shared version; no Mac version, bundle identifier or build script changes are made. A Windows version-resource generator derives the four numeric components from VERSION and BUILD, validates their 16-bit range, and supplies FileDescription, OriginalFilename, CompanyName, copyright and product fields. File metadata attribution is not a code-signing certificate identity or Store publisher assignment.
@@ -25,6 +25,6 @@ The ordinary scripts/build-windows.ps1 command retains the review output. Use sc
 
 The ICO contains 16, 24, 32, 48, 64, 128 and 256 pixel entries; no new artwork was generated. Windows PE inspection verifies version strings/numeric fields, icon resources and the prerelease flag without executing the app. The license audit rejects a missing or altered application LICENSE in either packaged location.
 
-This is local release preparation. The candidate at main 51c3106 has been signed and ZIP-packaged; Store reservation/MSIX identity, release-version approval and publication remain separate steps. The prerelease flag and development-candidate metadata must be reviewed when an actual public release is prepared. No public Store name, publisher identifier or package-family name is invented here.
+This is local release preparation. The candidate at main 9efe8c1 has been rebuilt, completely signed and ZIP-packaged. Private non-Store MSIX/portable feasibility checks passed. Production Store identity/MSIX/WACK, release-version approval and publication remain separate steps. The prerelease flag and development-candidate metadata must be reviewed when an actual public release is prepared. No public Store name, publisher identifier or package-family name is invented here.
 
 Physical multiple-monitor acceptance and hardware-enabled packaged acceptance remain pending. Earlier binary acceptance belongs to its own hashes; current final-ZIP simulation, standard-user, runtime and shell-launch evidence is consolidated in WINDOWS-RELEASE-CANDIDATE.md.
