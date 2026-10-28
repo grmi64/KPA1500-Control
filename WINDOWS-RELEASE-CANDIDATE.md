@@ -1,3 +1,29 @@
+# KPA1500 Control - corrected documentation repackage r2
+
+Prepared October 27, 2026. Documentation base is main 8de93370c3eea153866e17a3601fa8f08905ff55 with uncommitted r2 review corrections. Runtime/build remains 9efe8c119c0655333e52d4078f43b18f4675cdcc. No rebuild/signing or hardware/publication occurred.
+
+Current ZIP: `KPA1500-Control-0.1.25-build26-docs-8de9337-r2-Windows-x64-signed.zip`, SHA256 `5ef5a7ccb57434e7e7a3389339e64f096acee34806f60252a8d82d34abf71c00`, 14232242 bytes. It contains 242 files. Only the bundled identity and validation report differ from r1; all 240 other files, including the signed EXE, all 78 PE files, configuration, licenses and notices, are byte-for-byte unchanged. All signature-receipt output hashes match. Earlier archives and receipts are preserved.
+
+The historical report links below are explicitly current-archive links and do not verify the older ZIP. Identity text now distinguishes earlier runtime/security tests from each repackage's own offline checks. Current [manifest](WINDOWS-CANDIDATE.json) and [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt) resolve from their containing directory; standalone copies use their declared ../ sibling layout. R2 offline checks passed: 18 artifact hash/size/path checks across repository, standalone and relocated layouts; 63 external and 25 bundled local links. In a fresh network-disabled Sandbox, all 242 extracted file hashes matched and all 78 signatures were Valid with Application Control state 1. A standard user with a read-only app folder passed first-launch/reopen (18 simulation checks each, exit 0), preference close/save and normal Simulation launch; no Python/Node installation was present. The user confirmed Full and Compact views look correct with simulator badge and warning visible. These results apply to the r2 hash above; no fresh missing-runtime, marked-file/SmartScreen or MSIX matrix is claimed for r2. Physical multiple-monitor and final signed-package hardware tests remain pending. No earlier test result is relabeled as r2 acceptance.
+
+## Previous documentation repackage r1 - historical artifact
+
+The following r1 report and test results belong to ZIP SHA256 953e29bcf8310dc5597074f446a2f9683ec2f36a57b488b42e00f70f30b4c28b, not r2. Its links to unversioned external records now track the current r2 candidate.
+
+# KPA1500 Control - documentation-reconciled Windows candidate
+
+Prepared October 27, 2026. PR #11 merged as 8de93370c3eea153866e17a3601fa8f08905ff55 after Windows and Mac review at 9452e13. Runtime/build source remains 9efe8c119c0655333e52d4078f43b18f4675cdcc; no rebuild or signing was required.
+
+New ZIP: `KPA1500-Control-0.1.25-build26-docs-8de9337-Windows-x64-signed.zip`. SHA256 `953e29bcf8310dc5597074f446a2f9683ec2f36a57b488b42e00f70f30b4c28b`; 14231855 bytes. It contains 242 files. Four existing documents were changed and two documents added; all other 236 original files are unchanged. All 78 PE receipt hashes match, including EXE SHA256 `f9348de5b08addc2b1abbe51f91289f32911bc7d9db78539429aa88a3d807e06`. Config, licenses and third-party notices are unchanged. Original ZIP/receipt are retained.
+
+All 25 bundled local Markdown links resolve. Bundled validation/release notes now exist; README, installation, support and identity text agree with this documentation-only package. The archive cannot contain its own hash: use the external [manifest](WINDOWS-CANDIDATE.json) and [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt), with paths based at their containing directory. Standalone companion records use their declared ../ sibling layout. New-archive offline Sandbox standard-user acceptance passed: every one of 242 extracted files matched; all 78 signatures Valid, Application Control state 1, no active adapters, non-admin token and read-only app folder. First-launch and reopen each passed 18 simulation checks and exited 0, including preferences/close-save; normal per-user launch reached Simulation. The user confirmed Full and Compact views look correct with simulator labeling visible. These new-archive results are separate from the historical tests below. No fresh missing-runtime, marked-file/SmartScreen or MSIX matrix was run on this new ZIP; those prior results remain attributed to the previous artifact.
+
+Physical multiple-monitor and final signed-package hardware acceptance remain pending. No hardware or publication is authorized. Earlier SmartScreen and missing-runtime qualifications remain unchanged; no new security/reputation result is implied by byte preservation.
+
+## Prior 9efe8c1 ZIP evidence - historical artifact
+
+The following report applies to the original 240-file ZIP and its hashes. Its shipped-document reconciliation gate is addressed by the new package above, but its native/security test results remain attributed to that original ZIP.
+
 # KPA1500 Control - Windows candidate validation
 
 Prepared October 27, 2026. Local release preparation only; not published.
@@ -13,9 +39,7 @@ Prepared October 27, 2026. Local release preparation only; not published.
 - Requirements: Windows 11 x64 and Microsoft Edge WebView2 Evergreen Runtime. No separate Python/Node installation is needed.
 - MIT application license; third-party components retain their own notices and attribution.
 
-Checksums: [WINDOWS-CANDIDATE-SHA256SUMS.txt](WINDOWS-CANDIDATE-SHA256SUMS.txt).
-Machine-readable record: [WINDOWS-CANDIDATE.json](WINDOWS-CANDIDATE.json).
-User notes: [WINDOWS-RELEASE-NOTES.md](WINDOWS-RELEASE-NOTES.md).
+Current-archive records only: [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt), [manifest](WINDOWS-CANDIDATE.json), and [user notes](WINDOWS-RELEASE-NOTES.md). These links track the current repackage, not this historical ZIP. For the original artifact use the explicit ZIP hash below and the manifest's previous_candidate records; do not verify the historical ZIP against the current checksum-file ZIP entry.
 
 ZIP SHA256: `34ca808bb10c72be73395368681eeaa8a677c1d7d8b8b61537be476d47a6b490`.
 EXE SHA256: `f9348de5b08addc2b1abbe51f91289f32911bc7d9db78539429aa88a3d807e06`.
