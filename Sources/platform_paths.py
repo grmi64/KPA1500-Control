@@ -2,6 +2,16 @@
 import glob,os,re,sys
 from pathlib import Path
 WINDOWS=sys.platform=='win32'
+def settings_path(value):
+ """Normalize the logical profile name without resolving MSIX storage.
+
+On Windows, resolving an existing file follows the package's LocalCache
+view and changes its identity. abspath normalizes relative paths and dot
+segments without asking where that file is physically stored. File access
+still uses the normal Windows view. Keep the existing POSIX behavior.
+ """
+ if WINDOWS:return Path(os.path.abspath(os.fspath(value)))
+ return Path(value).resolve()
 def data_directory():
  if WINDOWS:return Path(os.environ.get('LOCALAPPDATA',Path.home()/'AppData/Local'))/'KPA1500 Control'
  return Path.home()/'Library/Application Support/com.grmi64.KPA1500Control'

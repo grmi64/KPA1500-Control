@@ -4,7 +4,7 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer
 from engine import Controller
 from server import handler_for
-from platform_paths import data_directory
+from platform_paths import data_directory,settings_path
 from windows_instance import Instance
 from windows_close import CloseCoordinator
 from windows_preferences import Preferences
@@ -167,7 +167,7 @@ def main(argv=None):
    if args.host:parser.error('TCP/IP host cannot be combined with USB')
    endpoint=dict(mode='usb',port=serial_port(args.usb_port) if args.usb_port else '',baud=args.baud)
  elif args.usb_port or args.host:parser.error('Select the endpoint connection type')
- base_settings=args.settings.resolve();args.settings=mode_settings(base_settings,mode)
+ base_settings=settings_path(args.settings);args.settings=mode_settings(base_settings,mode)
  if sys.platform!='win32':parser.error('Windows is required')
  if args.smoke_close_test and not args.smoke_test:parser.error('Close regression requires --smoke-test')
  if args.smoke_test and args.http_port!=0:parser.error('Smoke tests require --http-port 0 and a new --settings file')
