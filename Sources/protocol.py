@@ -8,21 +8,32 @@ FAULTS={'00':'No active fault','10':'Controller watchdog reset','20':'PA current
 FAST=('VG','PWF','PWR','SW','TM','OS','FL','TP','AN','AM','AI')
 SLOW=('BN','FR','PWI','PC','VI','SB','DS','FC','FS')
 class Protocol:
- def __init__(self,transport):self.transport=transport;self.buffer=b'';self.log=[]
+ def __init__(self,transport):
+  self.transport=transport;self.buffer=b'';self.log=[];self.query_interval=getattr(transport,'query_interval',0);self._query_finished=None
  def send(self,command):
   if not re.fullmatch(r'\^[A-Z0-9+]+;',command):raise ValueError('Invalid command.')
   self.transport.write(command.encode('ascii'));self.log=(self.log+[command])[-40:]
  def query(self,tag,timeout=.25):
-  self.send('^'+tag+';');deadline=time.monotonic()+timeout
-  while time.monotonic()<deadline:
-   while b';' in self.buffer:
-    frame,self.buffer=self.buffer.split(b';',1)
-    text=frame.decode('ascii',errors='strict').strip()
-    if text.upper().startswith('^'+tag) or (tag=='I' and text.upper()=='^KPA1500'):return text+';'
-    if text in ('?','^?'):raise ValueError('Command not supported: '+tag)
-   self.buffer+=self.transport.read(min(.05,max(0,deadline-time.monotonic())))
-   if len(self.buffer)>4096:raise ValueError('Invalid oversized amplifier response.')
-  raise TimeoutError('No response to '+tag)
+  # Only GET queries are paced. A control setter is never delayed or replayed here.
+  if self._query_finished is not None:
+   remaining=self.query_interval-(time.monotonic()-self._query_finished)
+   if remaining>0:time.sleep(remaining)
+  try:
+   self.send('^'+tag+';');deadline=time.monotonic()+timeout
+   while True:
+    # A bounded read can return after its deadline because of OS scheduling.
+    # Inspect bytes already returned before deciding whether another read is allowed.
+    while b';' in self.buffer:
+     frame,self.buffer=self.buffer.split(b';',1)
+     text=frame.decode('ascii',errors='strict').strip()
+     if text.upper().startswith('^'+tag) or (tag=='I' and text.upper()=='^KPA1500'):return text+';'
+     if text in ('?','^?'):raise ValueError('Command not supported: '+tag)
+    remaining=deadline-time.monotonic()
+    if remaining<=0:raise TimeoutError('No response to '+tag)
+    self.buffer+=self.transport.read(min(.05,remaining))
+    if len(self.buffer)>4096:raise ValueError('Invalid oversized amplifier response.')
+  finally:self._query_finished=time.monotonic()
+
 
 def parse(frame):
  text=frame.strip()
