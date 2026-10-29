@@ -82,6 +82,8 @@ class TCPTransport:
 
 class WindowsSerialTransport:
  """pyserial uses exclusive CreateFile handles on Windows; no POSIX select."""
+ # Measured mitigation for unanswered queries on Windows USB; not a protocol requirement.
+ query_interval=.05
  def __init__(self,port,baud,serial_factory=None):
   port=serial_port(port)
   if baud not in BAUDS:raise ValueError('Unsupported baud rate.')
