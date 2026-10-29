@@ -67,7 +67,10 @@ def parse(frame):
   key=re.search(r'KeyIn:([01])\b',body)
   if 'TR_STATE_TX' in body or (key and key[1]=='1') or '3T:1' in body:return {'transmitting':True,'tr_state':body[2:].strip()}
   receiving=bool(re.search(r'\bTR_STATE_RX\b',body))
-  standby_idle=all(re.search(pattern,body) for pattern in (r'\bTR_STATE_PA_BYPASSED_3R_ON\b',r'\b3R:1\b',r'\b3T:0\b',r'\bBias:0\b',r'\bPA STBY\b',r'\bMODE_STBY\b'))
+  # Firmware 03.06 reports this inhibited/bypassed Standby diagnostic with
+  # either 3R value. Require the complete observed frame and all idle bits;
+  # a receive-relay bit alone never establishes a safe non-transmit state.
+  standby_idle=bool(re.fullmatch(r'VG\s+TR inhibit x01\s+TR_STATE_PA_BYPASSED_3R_ON\s+3R:[01]\s+3T:0\s+Bias:0\s+PA STBY\s+KeyIn:0\s+MODE_STBY',body))
   if key and key[1]=='0' and (receiving or standby_idle):return {'transmitting':False,'tr_state':body[2:].strip()}
   return {'transmitting':None,'tr_state':body[2:].strip()}
  if body.startswith('SN'):return {'serial':body[2:][:32]}
