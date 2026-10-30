@@ -72,7 +72,7 @@ class ActivationTests(unittest.TestCase):
     hooks['activate']();self.assertEqual(len(queued),3);form.IsDisposed=True;events.closed.fire();queued[2]();hooks['activate']();self.assertEqual(len(queued),3);self.assertEqual(form.Show.call_count,2)
    view=types.SimpleNamespace(__file__=str(pathlib.Path(folder)/'webview/__init__.py'),settings={},create_window=Mock(return_value=window),start=start)
    modules={'webview':view,'System':types.SimpleNamespace(Action=lambda fn:fn),'System.Windows.Forms':types.SimpleNamespace(FormWindowState=types.SimpleNamespace(Normal=0,Minimized=1)),'Microsoft.Win32':types.SimpleNamespace(SystemEvents=types.SimpleNamespace(DisplaySettingsChanged=Event()))}
-   stack.enter_context(patch.dict('sys.modules',modules));stack.enter_context(patch.object(windows_app.sys,'platform','win32'))
+   stack.enter_context(patch.dict('sys.modules',modules));stack.enter_context(patch.object(windows_app.sys,'platform','win32'));stack.enter_context(patch('windows_forms.install'))
    for name in ['configure_process_dpi','ensure_webview2_runtime','restore_window_geometry','keep_visible','WindowDpiSizing','DpiWindowHook','CloseCoordinator'] :stack.enter_context(patch('windows_app.'+name))
    controller=stack.enter_context(patch('windows_app.Controller')).return_value;controller.connect.side_effect=AssertionError('No hardware startup allowed')
    instance=stack.enter_context(patch('windows_app.Instance')).return_value;instance.acquire.return_value=True

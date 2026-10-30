@@ -212,12 +212,16 @@ def main(argv=None):
  try:
   import webview
   ensure_webview2_runtime(Path(webview.__file__).parent)
+  from windows_forms import install
+  install()
   controller=Controller(args.settings,offline_only=mode=='simulation',read_only=mode=='read-only',manual_connect=True)
   if endpoint:controller.save_settings(dict(endpoint,auto_connect=False,share_readings=False))
   token=secrets.token_urlsafe(24)
   server=ThreadingHTTPServer(('127.0.0.1',args.http_port),handler_for(controller,token,activate=activate,simulate_discovery=mode=='simulation'));server.daemon_threads=True
   thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.1},daemon=True);thread.start()
-  if mode=='simulation':controller.connect({'mode':'simulator'})
+  if mode=='simulation':
+   from windows_simulation_startup import start_simulation
+   start_simulation(controller)
   bridge=DisplayBridge(preferences);bridge._launch=LaunchWorkflow(controller,server.RequestHandlerClass.discovery,base_settings,mode,restricted=args.smoke_test);url=f'http://127.0.0.1:{server.server_port}/{token}/'
   webview.settings.update(ALLOW_FILE_URLS=False,ALLOW_DOWNLOADS=False,OPEN_EXTERNAL_LINKS_IN_BROWSER=False,OPEN_DEVTOOLS_IN_DEBUG=False)
   # Construct a small native shell before moving it between DPI domains.
