@@ -98,6 +98,15 @@ def keep_visible(window,suggested=None):
  if fitted!=bounds:form.Bounds=Rectangle(*fitted)
  return fitted
 
+def restore_window_geometry(window,full_size,position=None):
+ """Restore logical Full dimensions using the destination monitor's actual DPI."""
+ from System.Drawing import Point
+ form=window.native
+ if position:form.Location=Point(*position)
+ scale=window_dpi(form.Handle.ToInt64())/96
+ bounds=form.Bounds
+ return keep_visible(window,(bounds.X,bounds.Y,round(full_size[0]*scale),round(full_size[1]*scale)))
+
 def normal_window_size(window):
  """Return the normal outer size in logical pixels, even while maximized."""
  from System.Windows.Forms import FormWindowState
@@ -202,15 +211,15 @@ def main(argv=None):
   if mode=='simulation':controller.connect({'mode':'simulator'})
   bridge=DisplayBridge(preferences);bridge._launch=LaunchWorkflow(controller,server.RequestHandlerClass.discovery,base_settings,mode,restricted=args.smoke_test);url=f'http://127.0.0.1:{server.server_port}/{token}/'
   webview.settings.update(ALLOW_FILE_URLS=False,ALLOW_DOWNLOADS=False,OPEN_EXTERNAL_LINKS_IN_BROWSER=False,OPEN_DEVTOOLS_IN_DEBUG=False)
-  window=webview.create_window('KPA1500 Control · '+MODES[mode],url,js_api=bridge,width=preferences.snapshot().get('full_size',[1020,850])[0],height=preferences.snapshot().get('full_size',[1020,850])[1],min_size=(360,440),background_color='#111619',text_select=True);bridge._window=window
+  # Construct a small native shell before moving it between DPI domains.
+  # Apply the saved logical Full size only after the destination DPI is known.
+  window=webview.create_window('KPA1500 Control · '+MODES[mode],url,js_api=bridge,width=360,height=440,min_size=(360,440),background_color='#111619',text_select=True);bridge._window=window
   def setup():
    nonlocal display_callback
    from System import Action
-   from System.Drawing import Point
    from Microsoft.Win32 import SystemEvents
    form=window.native
    position=preferences.snapshot().get('position')
-   if position:form.Location=Point(*position)
    def changed(sender,event):
     if not form.IsDisposed:form.BeginInvoke(Action(lambda:keep_visible(window)))
    display_callback=changed;SystemEvents.DisplaySettingsChanged+=display_callback
@@ -223,7 +232,8 @@ def main(argv=None):
     if str(event.Uri)!=url:event.Cancel=True
    window.native.webview.NavigationStarting+=navigating
    window._dpi_sizing=WindowDpiSizing(window)
-   window._dpi_hook=DpiWindowHook(window.native.Handle.ToInt64(),window._dpi_sizing.changed,prepare=window._dpi_sizing.prepare,minimized=window._dpi_sizing.minimized,restored=window._dpi_sizing.restored);keep_visible(window)
+   window._dpi_hook=DpiWindowHook(window.native.Handle.ToInt64(),window._dpi_sizing.changed,prepare=window._dpi_sizing.prepare,minimized=window._dpi_sizing.minimized,restored=window._dpi_sizing.restored)
+   restore_window_geometry(window,bridge._full_size,position)
   window.events.before_show+=setup
   def remember():
    from System.Windows.Forms import FormWindowState
