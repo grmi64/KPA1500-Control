@@ -103,7 +103,9 @@ class WindowsSerialTransport:
   if sent!=len(data):raise TimeoutError('USB write was incomplete; command will not be repeated.')
  def read(self,timeout):
   if self.serial is None:raise OSError('USB connection is closed.')
-  self.serial.timeout=max(0,min(timeout,.25))
+  timeout=max(0,min(timeout,.25))
+  # pyserial reapplies baud/line settings when its timeout setter is called.
+  if self.serial.timeout!=timeout:self.serial.timeout=timeout
   return self.serial.read(max(1,min(4096,self.serial.in_waiting)))
  def close(self):
   try:
