@@ -212,8 +212,11 @@ class Controller:
     except (OSError,ValueError):pass
    elif kind=='terminal':self.state=data;self.received=time.time()
    elif kind=='error':self.clear('error',data)
-  if self.worker and not self.worker.is_alive():
-   if self.state['status'] not in ('error','disconnected','powered_off'):self.clear('error','Amplifier reader stopped (exit code '+str(self.worker.exitcode)+'). Reconnect when ready.')
+  worker=self.worker
+  # A published Process can still be inside start(), before it has a PID.
+  # Keep serving connecting state; an unstarted process has not exited.
+  if worker and worker.pid is not None and not worker.is_alive():
+   if self.state['status'] not in ('error','disconnected','powered_off'):self.clear('error','Amplifier reader stopped (exit code '+str(worker.exitcode)+'). Reconnect when ready.')
    for action in self.action_log:
     if action['status']=='queued':action.update(status='failed',message=self.state.get('message','Amplifier reader stopped. Request was not confirmed; no automatic retry.'))
  def snapshot(self):
