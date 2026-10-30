@@ -1,0 +1,127 @@
+DX CALIBER WINDOWS PORT — USB AND STARTUP TESTING HANDOFF
+Saved 2026-10-30 from the KPA1500 Windows port investigation and acceptance.
+Keep this file with the future DX Caliber Windows-port test plan. It records
+transferable lessons, not a requirement to copy KPA1500 protocol/timing choices.
+
+THE MOST IMPORTANT USB FINDING
+With pyserial3.5 on Windows, assigning Serial.timeout invokes driver
+reconfiguration even when the value is unchanged. KPA1500 assigned it on every
+read. Windows ETW showed about404baud and404line-format control requests in
+about16seconds. Successful USB bulk completions did not establish timely
+application-protocol replies. Some application replies arrived after deadlines.
+The small production fix in Sources/transport.py, WindowsSerialTransport.read,
+keeps the existing timeout clamp and assigns serial.timeout only when it changes.
+Negative controls verified that old behavior reconfigured on redundant assignments
+and that changed/clamped timeout requests still apply with the guard.
+Do not start by lengthening every timeout or retrying queries/operating commands.
+For DX Caliber, count property-setter/driver-configuration calls and preserve its
+own protocol's required baud, pacing, deadlines and command semantics.
+KPA1500's50ms query gap/250ms read ceiling are device-specific, not universal.
+
+ISOLATE ONE VARIABLE AND RECORD THE ACTUAL CONNECTIONS
+- Baseline a known device/cable/PC port, then change only the cable, port, hub,
+  host OS or amplifier Ethernet connection being compared. Record USB serial
+  identity, COM number, baud, driver/version, hub path and physical topology.
+- The same replacement cable/amplifier passed an independent read-only Mac run:
+  7620queries,0failures in600.590s. That supported cross-host comparison; it did
+  not itself prove the Windows cause or accept a Windows binary.
+- Do not interpret an internal root-hub entry as proof of an external hub.
+  Conversely, do not assume every external hub is faulty. The final Windows
+  acceptance below explicitly used an operator-confirmed USB hub and passed.
+- Leave cables untouched during measured runs and obtain an explicit operator
+  confirmation afterward. If movement/timing is uncertain, mark the run uncertain.
+- Specify which Ethernet cable is being unplugged. A previous comparison changed
+  BOTH amplifier Ethernet and the laptop's USB Ethernet connection, so it was not
+  a single-variable network comparison. The wired adapter subsequently had an
+  APIPA IPv4 address/no IPv4 gateway while IPv6 remained; that was a separate
+  host-network symptom. One targeted DHCP renewal restored IPv4; its original
+  reacquisition failure was not proven. Do not silently reset NICs, change DNS,
+  power plans, driver settings or security settings while diagnosing serial I/O.
+- For monitor loss, unplug only an independent display cable; preserve the USB
+  hub/upstream cable and Ethernet link. For amplifier USB loss, unplug only the
+  amplifier cable at its hub port, not the whole dock or USB Ethernet adapter.
+
+CAPTURE THE RIGHT EVIDENCE
+Record monotonic query/write/read/frame timestamps, query IDs, raw frame matching,
+timeout-setting changes, real power-observation age, driver status/error flags and
+controller publication/delivery times. Distinguish wire/read-return timing from
+cached-state publication and GUI refresh. Instrumentation can perturb timing.
+The older private Windows trace had11failed queries in6861requests,8with matching
+later frames; this located delays but was not final signed-package acceptance.
+USB ETW payload was not captured in the key trace: PWF/PWR positions were inferred
+from ordering, not decoded payload. Keep that qualification with the evidence.
+A single empty errors snapshot is insufficient; capture continuously and stop a
+qualified run on stale/error/fault criteria. A slow or failed desktop-inspection
+tool is not automatically an application stall. Preserve Python/native/managed
+stacks before terminating a stalled private process.
+
+OWNERSHIP, DISCONNECTION AND NO REPLAY
+Keep one owner of a serial endpoint; check for logging/control clients before
+tests. Use private profiles, forced Simulation or read-only modes as appropriate.
+Start hardware modes disconnected, connect explicitly and keep sharing opt-in.
+On cable loss verify ERROR, cleared readings and disabled controls. Reconnection
+alone must not silently reconnect, switch transports or replay operating requests.
+After restoring the same device identity, issue one explicit Connect and verify
+fresh telemetry. A reader object existing is not proof its worker/device is alive.
+Downstream DX Caliber telemetry should carry actual measurement age, not make
+cached amplifier values look fresh merely because HTTP/UI publication is recent.
+For live RF tests, the operator alone supplies/stops RF and controls radio drive.
+Verify the correct connected window before transmission; compare panel and app,
+then explicitly confirm RF off AND Standby. Avoid unnecessary repeat transmissions.
+
+WINDOWS STARTUP / DISPLAYS — RELEVANT IF DX CALIBER USES PYWEBVIEW/PYTHONNET
+KPA1500's native form could stall at a WinForms Size assignment. Direct CLR
+property setters retained Python's GIL during native accessibility/COM callbacks.
+A native negative-control test blocks a second Python thread with direct assignment;
+managed PropertyInfo method dispatch allows the callback and passes. The Windows
+form geometry wrapper is Sources/windows_forms.py; regression tests are in
+tests/test_windows_forms.py. Apply this only to a matching toolkit/failure path.
+An intermittent initial simulator WinError6 was also observed; its underlying
+cause remains unproven. Sources/windows_simulation_startup.py permits one bounded
+recreation ONLY for that exact initial offline-Simulation error and journals it.
+A real spawned failing-worker test verifies replacement; second failures remain
+visible and later/runtime failures stay manual. Do not generalize this into an
+automatic hardware reconnect or command retry policy.
+Test process-start publication, worker death, pre-native activation, disposed-form
+callbacks and normal shutdown. An HTTP server being live does not prove UI ready.
+Measure live telemetry plus a fresh rendered-UI/native handshake, and independently
+inspect controls; retain external-inspector delays separately. Use fresh and saved
+profiles. Test Full/maximize/Compact/Full, normal reopens on a physical second
+monitor, missing-monitor primary recovery and persistence after reconnecting it.
+Saved off-screen coordinates alone are not a physical multi-monitor test.
+
+ACCEPT THE EXACT DELIVERABLE
+Bind each result to source commit/tree, signed EXE hash, ZIP hash, extracted-file
+manifest, publisher/timestamp and private profile. Source/diagnostic passes and
+Mac compatibility review support but do not replace exact Windows-package tests.
+Keep failures and exclusions, including harness preflight problems; do not relabel
+earlier-package results as new binary acceptance. No reported CI is not a CI pass.
+
+FINAL KPA1500 EXAMPLE / BASELINE FOR THE FUTURE PORT
+Merge: a400cfe04a09ac7c007186b0c7c1ab0d164b50cf (PR20)
+Signed EXE: a719fd27942cb83f4534c2f8a9191016701085b9d4a9d4539498981d32a48e27
+Signed ZIP: 09d4796044eff347e55499d91c2faab503fcfccba9411f76f1f39387db608ddd
+Setup: Windows laptop, USB hub, COM3/230400, FTDI AU05ZR6XA; amplifier01427/FW03.06;
+amplifier Ethernet192.168.0.18:1500; two physical displays.
+USB600s:2305app snapshot samples,0anomalies,max power age1.536s.
+TCP300s:1152samples,0anomalies,max age0.267s.
+USB/TCP controls, USB power cycle, cable loss/no-auto-reconnect/manual recovery,
+Tune/Cancel, RF-backed tune, and physical display sequence passed.
+RF comparison: operator about550W/1.10SWR, app matched; captured544–554W,
+median551W, settled RF sample SWR1.1;71RF samples; RF off/Standby verified.
+This validates the tested setup/workload, not every hub, driver or RF power level.
+
+EVIDENCE LOCATIONS (relative to this KPA1500-Control repository)
+Final exact-package acceptance: dist/windows/startup-a400cfe-2026-10-30/FULL-ACCEPTANCE.txt
+Final raw evidence/manifest: dist/windows/startup-a400cfe-2026-10-30/evidence/hardware-acceptance/
+USB timeout investigation/review: dist/windows/usb-timeout-guard-review-2026-10-30/
+Earlier frame/timing diagnostic: .tmp/diag18/INVESTIGATION.json and analysis.json
+Mac same-cable diagnostic: C:/Users/gmill/Downloads/REPORT-xxx.txt
+Native GIL probe: .tmp/invalid-handle-diagnostic/gil_setter_probe.py
+Source regressions and signed-review startup evidence:
+dist/windows/startup-fix-review-2026-10-30/REPORT.txt and STARTUP-TEST-RESULTS.json
+Recovery checkpoint: dist/windows/activation-6832cde-2026-10-29/recovery-2026-10-30/
+
+The Windows checkout currently has no separate DX Caliber repository. This root
+handoff and a copy alongside the final acceptance report are the durable local
+handoff; bring them into the DX Caliber project when that port begins.

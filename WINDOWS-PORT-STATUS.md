@@ -1,3 +1,30 @@
+# Current Windows port status — full acceptance passed
+
+Accepted merge: `a400cfe04a09ac7c007186b0c7c1ab0d164b50cf` ([PR #20](https://github.com/grmi64/KPA1500-Control/pull/20)). Application **0.1.25/build 26, Windows Preview**, numeric Windows version 0.1.25.26; prerelease flag retained. Portable ZIP first; Microsoft Store deferred.
+
+- ZIP: `KPA1500-Control-0.1.25-build26-startup-a400cfe-Windows-x64-signed.zip`.
+- ZIP SHA256: `09d4796044eff347e55499d91c2faab503fcfccba9411f76f1f39387db608ddd`.
+- EXE SHA256: `a719fd27942cb83f4534c2f8a9191016701085b9d4a9d4539498981d32a48e27`.
+- Evidence: [full acceptance report](dist/windows/startup-a400cfe-2026-10-30/FULL-ACCEPTANCE.txt), [structured results](dist/windows/startup-a400cfe-2026-10-30/FULL-ACCEPTANCE.json), [current manifest](WINDOWS-CANDIDATE.json), and [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt).
+
+Evidence links under `dist/windows/` refer to preserved local acceptance files; those artifacts are not committed or uploaded by this documentation PR.
+
+Full functional acceptance passed October 30, 2026 on the exact signed merge executable. USB monitoring through a hub passed 600.015 seconds (2,305 snapshots, zero anomalies); Ethernet passed 300 seconds (1,152 snapshots, zero anomalies). USB/TCP mode and ATU controls, physical USB power off/on, cable-loss ERROR with cleared readings, explicit reconnect without operating-request replay, Tune/Cancel and RF-backed tuning passed. The operator confirmed app/panel agreement at about 550 W and SWR 1.10, then RF off and Standby. The operator alone supplied and stopped RF.
+
+Two physical displays passed Compact/Full/maximize transitions, two normal monitor-2 reopens, missing-monitor recovery to the primary display, and reconnect/reopen at the recovered primary position. All private acceptance readers/windows closed; no exact-candidate processes remain.
+
+All 237 payload files and ZIP hash remained unchanged. All 78 native signatures were verified (seven newly signed, vendor signatures preserved), with a valid timestamped Gregory Miller signature and signing-only code/data comparison. The clean merge archive's 177 source files and 23 frozen project modules were verified. Two exact signed Simulation smoke runs passed 19 checks each, including six pre-native authenticated activation requests. Earlier 20-startup-test evidence belongs to the reviewed-source candidate; it is supporting evidence, not a new 20-run test of this merge binary. No configured CI checks/runs were reported; no CI pass is claimed.
+
+This acceptance covers the recorded Windows laptop, USB hub/FTDI COM3 at 230400 baud, amplifier 01427/FW 03.06, Ethernet 192.168.0.18:1500 and two displays. It does not establish every hub/driver/RF power level or eliminate every possible intermittent fault. The original offline Simulation WinError 6 cause remains unproven; the reviewed bounded startup-only recovery was not needed here. The native sizing stall was reproduced and fixed through managed property dispatch. A missing-window-metadata USB-loss recorder preflight stopped before any hardware command; the subsequent recorded run passed after reopening the private windows.
+
+Nothing was installed or published. Publication authorization, Store identity/MSIX/WACK/certification and public privacy-policy hosting remain separate. Earlier clean-PC, missing-WebView2, marked-file/SmartScreen and private MSIX results retain their historical package attribution. These repository records were updated after acceptance; the tested ZIP and its bundled build-time documents remain unchanged.
+
+USB and Windows startup lessons for the future DX Caliber port are saved in [the handoff](DX-CALIBER-WINDOWS-PORT-HANDOFF.txt).
+
+## Historical development log
+
+The following entries retain their original milestone scope, including gates that were pending at those dates. The accepted-package status above supersedes those gates only for the stated tested setup.
+
 # Windows port status: dependencies, discovery and native host
 
 Baseline: `5427161b96dbcaec1373274b8f49d249df31876f` (audited Mac 0.1.25). Review branch `codex/windows-port` contains the initial Windows port for PR review. The validation notes below record the offline checks performed before committing. Checkout is outside OneDrive at `C:/Users/gmill/source/repos/KPA1500-Control`.
@@ -434,3 +461,11 @@ PR #11 merged as 8de9337 after Windows/Mac review. A separate ZIP reconciles bun
 ## Documentation correction r2 (2026-10-27)
 
 Historical-record links explicitly identify current records; identity wording separates prior runtime/security evidence from each repackage's offline checks. A new r2 ZIP changes only two bundled Markdown files; all signed/runtime bytes remain unchanged. R2 offline verification passed: 242 extracted hashes, 78 Valid signatures, Application Control state 1, zero active adapters, non-admin/read-only app directory, first/reopen 18 simulation checks each and exit 0, preference close/save and default Simulation. The user confirmed both views with simulator badge and warning visible. Monitor/final-package hardware tests pending; no commit or publication.
+
+## R2 packaged mode-switching recorded (2026-10-28)
+
+The October 27 native UI test of the exact r2 ZIP passed Simulation -> Read-only -> Hardware control -> Simulation, then close/normal reopen without a mode flag returned to live Simulation. Hardware modes stayed disconnected with no reader/actions/discovery, blank readings and auto-connect/sharing off; notices remained visible in Full/Compact. USB had no COM port; no Connect/discovery/equipment controls clicked. Evidence includes 325 read-only loopback observations, not an independent wire audit. All six artifact hashes stayed unchanged. Local evidence: .tmp/r2-mode-switching/. No hardware connection, commit or publication. Multiple-monitor and final signed-package hardware tests remain pending.
+
+## Windows Preview designation approved (2026-10-28)
+
+Owner approved 0.1.25/build 26, Windows Preview, retaining the prerelease flag. Portable ZIP first is selected; Microsoft Store is deferred. This external documentation decision preserves the signed EXE, r2 ZIP and all artifact hashes; no rebuild/signing/repackage, hardware activity, commit or publication. Publication still needs separate authorization. Physical multiple-monitor and final signed-package hardware acceptance remain pending.

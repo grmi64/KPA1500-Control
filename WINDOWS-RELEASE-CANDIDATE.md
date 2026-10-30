@@ -1,3 +1,32 @@
+# KPA1500 Control — accepted Windows Preview package
+
+Accepted merge: `a400cfe04a09ac7c007186b0c7c1ab0d164b50cf` ([PR #20](https://github.com/grmi64/KPA1500-Control/pull/20)). Application **0.1.25/build 26, Windows Preview**, numeric Windows version 0.1.25.26; prerelease flag retained. Portable ZIP first; Microsoft Store deferred.
+
+- ZIP: `KPA1500-Control-0.1.25-build26-startup-a400cfe-Windows-x64-signed.zip`.
+- ZIP SHA256: `09d4796044eff347e55499d91c2faab503fcfccba9411f76f1f39387db608ddd`.
+- EXE SHA256: `a719fd27942cb83f4534c2f8a9191016701085b9d4a9d4539498981d32a48e27`.
+- Evidence: [full acceptance report](dist/windows/startup-a400cfe-2026-10-30/FULL-ACCEPTANCE.txt), [structured results](dist/windows/startup-a400cfe-2026-10-30/FULL-ACCEPTANCE.json), [current manifest](WINDOWS-CANDIDATE.json), and [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt).
+
+Evidence links under `dist/windows/` refer to preserved local acceptance files; those artifacts are not committed or uploaded by this documentation PR.
+
+## Completed acceptance
+
+Full functional acceptance passed October 30, 2026 on the exact signed merge executable. USB monitoring through a hub passed 600.015 seconds (2,305 snapshots, zero anomalies); Ethernet passed 300 seconds (1,152 snapshots, zero anomalies). USB/TCP mode and ATU controls, physical USB power off/on, cable-loss ERROR with cleared readings, explicit reconnect without operating-request replay, Tune/Cancel and RF-backed tuning passed. The operator confirmed app/panel agreement at about 550 W and SWR 1.10, then RF off and Standby. The operator alone supplied and stopped RF.
+
+Two physical displays passed Compact/Full/maximize transitions, two normal monitor-2 reopens, missing-monitor recovery to the primary display, and reconnect/reopen at the recovered primary position. All private acceptance readers/windows closed; no exact-candidate processes remain.
+
+All 237 payload files and ZIP hash remained unchanged. All 78 native signatures were verified (seven newly signed, vendor signatures preserved), with a valid timestamped Gregory Miller signature and signing-only code/data comparison. The clean merge archive's 177 source files and 23 frozen project modules were verified. Two exact signed Simulation smoke runs passed 19 checks each, including six pre-native authenticated activation requests. Earlier 20-startup-test evidence belongs to the reviewed-source candidate; it is supporting evidence, not a new 20-run test of this merge binary. No configured CI checks/runs were reported; no CI pass is claimed.
+
+## Scope and remaining release work
+
+This acceptance covers the recorded Windows laptop, USB hub/FTDI COM3 at 230400 baud, amplifier 01427/FW 03.06, Ethernet 192.168.0.18:1500 and two displays. It does not establish every hub/driver/RF power level or eliminate every possible intermittent fault. The original offline Simulation WinError 6 cause remains unproven; the reviewed bounded startup-only recovery was not needed here. The native sizing stall was reproduced and fixed through managed property dispatch. A missing-window-metadata USB-loss recorder preflight stopped before any hardware command; the subsequent recorded run passed after reopening the private windows.
+
+Nothing was installed or published. Publication authorization, Store identity/MSIX/WACK/certification and public privacy-policy hosting remain separate. Earlier clean-PC, missing-WebView2, marked-file/SmartScreen and private MSIX results retain their historical package attribution. These repository records were updated after acceptance; the tested ZIP and its bundled build-time documents remain unchanged.
+
+## Historical package records
+
+The following reports preserve their original dates, package hashes and then-pending gates. References to current unversioned repository records now resolve to the October 30 accepted package; they do not verify an older archive.
+
 # KPA1500 Control - corrected documentation repackage r2
 
 Prepared October 27, 2026. Documentation base is main 8de93370c3eea153866e17a3601fa8f08905ff55 with uncommitted r2 review corrections. Runtime/build remains 9efe8c119c0655333e52d4078f43b18f4675cdcc. No rebuild/signing or hardware/publication occurred.
@@ -5,6 +34,18 @@ Prepared October 27, 2026. Documentation base is main 8de93370c3eea153866e17a360
 Current ZIP: `KPA1500-Control-0.1.25-build26-docs-8de9337-r2-Windows-x64-signed.zip`, SHA256 `5ef5a7ccb57434e7e7a3389339e64f096acee34806f60252a8d82d34abf71c00`, 14232242 bytes. It contains 242 files. Only the bundled identity and validation report differ from r1; all 240 other files, including the signed EXE, all 78 PE files, configuration, licenses and notices, are byte-for-byte unchanged. All signature-receipt output hashes match. Earlier archives and receipts are preserved.
 
 The historical report links below are explicitly current-archive links and do not verify the older ZIP. Identity text now distinguishes earlier runtime/security tests from each repackage's own offline checks. Current [manifest](WINDOWS-CANDIDATE.json) and [checksums](WINDOWS-CANDIDATE-SHA256SUMS.txt) resolve from their containing directory; standalone copies use their declared ../ sibling layout. R2 offline checks passed: 18 artifact hash/size/path checks across repository, standalone and relocated layouts; 63 external and 25 bundled local links. In a fresh network-disabled Sandbox, all 242 extracted file hashes matched and all 78 signatures were Valid with Application Control state 1. A standard user with a read-only app folder passed first-launch/reopen (18 simulation checks each, exit 0), preference close/save and normal Simulation launch; no Python/Node installation was present. The user confirmed Full and Compact views look correct with simulator badge and warning visible. These results apply to the r2 hash above; no fresh missing-runtime, marked-file/SmartScreen or MSIX matrix is claimed for r2. Physical multiple-monitor and final signed-package hardware tests remain pending. No earlier test result is relabeled as r2 acceptance.
+
+## Approved version and distribution decision (October 28, 2026)
+
+The owner approved version 0.1.25, build 26 (numeric Windows version 0.1.25.26) as **Windows Preview**, retaining the existing prerelease flag. Distribution will start with the portable ZIP; Microsoft Store is deferred. This decision preserves the exact signed r2 EXE/ZIP and does not authorize publication or hardware activity. No rebuild, signing or repackaging is needed to retain the existing version/flag. This external record is newer than the immutable bundled documentation; no new archive content or test result is implied. Physical multiple-monitor and final signed-package hardware acceptance remain pending. Historical decision statements below retain their earlier context.
+
+## R2 packaged mode-switching acceptance
+
+Test performed October 27, 2026; recorded October 28, 2026 against the unchanged r2 ZIP hash above. The exact package completed Simulation -> Read-only telemetry -> Hardware control -> Simulation through its native UI in a fresh network-disabled Sandbox. All three handoff confirmations were observed and accepted. USB was selected without a COM port; Connect, discovery and equipment controls were not clicked.
+
+Both hardware modes started and remained disconnected, with blank readings, no reader, no actions, no discovery activity, and auto-connect/sharing off in 325 read-only loopback observations across the sequence. Their notices remained visible in Full and Compact; visible equipment controls were disabled in Compact. Actual close/reopen without a mode flag returned to live Simulation. The observer finished and the guest app was left in Simulation. No independent wire audit was performed; the guest had no active network adapter and no usable USB endpoint was configured. This is disconnected mode-handoff acceptance, not hardware acceptance.
+
+All six external artifact hashes remained unchanged. Source/runtime and signed EXE/ZIP were not modified by the test. Private execution evidence is under `.tmp/r2-mode-switching/`. This recording changes external documentation/data only; it does not alter bundled documents, repackage, rerun the app, connect hardware, commit or publish. Physical multiple-monitor and final signed-package hardware acceptance remain pending.
 
 ## Previous documentation repackage r1 - historical artifact
 
