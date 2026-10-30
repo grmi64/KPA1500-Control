@@ -33,6 +33,10 @@ def worker_main(config,events,commands,stop):
   else:transport=SerialTransport(config['port'],config['baud'])
   if config.get('read_only'):transport=QueryOnlyTransport(transport)
   amp=Session(transport,cancelled=stop.is_set)
+  def publish(state):
+   # Queue delivery must not reset the age of the real power observation.
+   events.put(('state',dict(state,demo=demo,_power_observed_at=amp.last_live)))
+  amp.on_power=publish
   if config.get('wake_request'):
    amp.read('MA')
    if amp.values.get('mac_address')!=config['wake_mac']:raise ValueError('Wake connection MAC address did not match the selected amplifier. No power command sent.')
@@ -47,7 +51,7 @@ def worker_main(config,events,commands,stop):
   while not stop.is_set():
    now=time.monotonic();amp.poll(slow=now>=slow_at)
    if now>=slow_at:slow_at=now+4
-   events.put(('state',dict(amp.snapshot(),demo=demo)))
+   publish(amp.snapshot())
    if amp.snapshot()['status']!='powered_off' and amp.last_live and time.time()-amp.last_live>8:raise TimeoutError('Amplifier stopped responding. Connection closed; reconnect when ready.')
    for _ in range(4):
     if stop.is_set():break
@@ -64,7 +68,7 @@ def worker_main(config,events,commands,stop):
      else:result=amp.action(name)
      result.update(id=item['id'],action=name)
     except (ValueError,OSError,TimeoutError) as exc:result={'id':item['id'],'action':item['action'],'status':'failed','message':str(exc)}
-    events.put(('action',result));events.put(('state',dict(amp.snapshot(),demo=demo)))
+    events.put(('action',result));publish(amp.snapshot())
     if item['action']=='power_off' and result['status'] in ('confirmed','unconfirmed') and config['mode']=='tcp':
      terminal=dict(status='powered_off' if result['status']=='confirmed' else 'disconnected',powered_on=False if result['status']=='confirmed' else None,message=result['message'],demo=False)
      outcome=[('action',result),('terminal',terminal)];events.put(('terminal',terminal));return
@@ -193,7 +197,9 @@ class Controller:
      self.completion.close();self.completion=None;self.worker_finished=True
   for kind,data in pending:
    if kind=='state':
-    self.state=data;self.received=time.time()
+    self.state=dict(data);self.received=time.time()
+    observed=self.state.pop('_power_observed_at',None)
+    if observed is not None:self.state['age_seconds']=max(0,self.received-observed) if observed else None
     fault=data.get('fault_code')
     if fault and fault!='00' and fault!=self.last_fault:self.fault_log=([{'code':fault,'message':data.get('fault','Unknown fault'),'at':time.time()}]+self.fault_log)[:30]
     self.last_fault=fault
