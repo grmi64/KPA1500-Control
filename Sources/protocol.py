@@ -79,7 +79,7 @@ def parse(frame):
  raise ValueError('Unsupported or malformed response.')
 
 class Session:
- def __init__(self,transport,cancelled=lambda:False):self.cancelled=cancelled;self.protocol=Protocol(transport);self.values={};self.observed={};self.errors={};self.last_live=0
+ def __init__(self,transport,cancelled=lambda:False,on_power=None):self.cancelled=cancelled;self.on_power=on_power;self.protocol=Protocol(transport);self.values={};self.observed={};self.errors={};self.last_live=0
  def read(self,tag):
   try:
    values=parse(self.protocol.query(tag));stamp=time.time();self.values.update(values);self.observed.update({k:stamp for k in values});self.errors.pop(tag,None)
@@ -96,7 +96,11 @@ class Session:
  def poll(self,slow=False):
   self.read('ON')
   if 'ON' not in self.errors and self.values.get('powered_on') is False:return
-  for tag in FAST+(SLOW if slow else ()):self.read(tag)
+  for tag in FAST+(SLOW if slow else ()):
+   values=self.read(tag)
+   # Deliver a real fresh power observation before later queries can delay it.
+   # Failed reads never refresh its timestamp or publish an early live state.
+   if tag=='PWF' and values and self.on_power is not None and not self.cancelled():self.on_power(self.snapshot())
  def snapshot(self):
   now=time.time();age=now-self.last_live if self.last_live else None
   values={k:(v if now-self.observed.get(k,0)<(12 if k in ('serial','firmware','band','frequency_khz','input_watts','current_a','voltage_v','bypass_swr','lcd','fan_minimum','fan_speed') else 3) or k in ('serial','firmware','mac_address') else None) for k,v in self.values.items()}
