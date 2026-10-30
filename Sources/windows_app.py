@@ -19,6 +19,23 @@ def fit_bounds(bounds,area):
  x,y,w,h=bounds;l,t,aw,ah=area;w=min(max(1,w),aw);h=min(max(1,h),ah)
  return max(l,min(x,l+aw-w)),max(t,min(y,t+ah-h)),w,h
 
+class ActivationGate:
+ """Coalesce startup focus requests until the native form can accept UI work."""
+ def __init__(self):
+  self._lock=threading.Lock();self._dispatch=None;self._pending=False;self._closed=False
+ def request(self):
+  with self._lock:
+   if self._closed:return
+   if self._dispatch is None:self._pending=True
+   else:self._dispatch()
+ def ready(self,dispatch):
+  with self._lock:
+   if self._closed:return
+   self._dispatch=dispatch
+   if self._pending:self._pending=False;dispatch()
+ def close(self):
+  with self._lock:self._closed=True;self._pending=False;self._dispatch=None
+
 class WindowDpiSizing:
  """Correct the unscaled rectangle Windows can suggest while restoring an icon."""
  def __init__(self,window):
@@ -188,17 +205,9 @@ def main(argv=None):
  instance=Instance(args.settings)
  if not instance.acquire(activate_existing=not (args.mode_handoff or endpoint is not None)):return 0
  preferences=Preferences(args.settings.with_suffix('.window.json'))
- activation=threading.Event();bridge=None
+ activation=threading.Event();activation_gate=ActivationGate();bridge=None
  def activate():
-  activation.set()
-  if bridge and bridge._window:
-   from System import Action
-   from System.Windows.Forms import FormWindowState
-   def focus():
-    form=bridge._window.native
-    if form.WindowState==FormWindowState.Minimized:form.WindowState=FormWindowState.Normal
-    keep_visible(bridge._window);form.Show();form.Activate();form.BringToFront()
-   bridge._window.native.BeginInvoke(Action(focus))
+  activation.set();activation_gate.request()
  controller=None;server=None;thread=None;failures=[];display_callback=None
  try:
   import webview
@@ -234,7 +243,17 @@ def main(argv=None):
    window._dpi_sizing=WindowDpiSizing(window)
    window._dpi_hook=DpiWindowHook(window.native.Handle.ToInt64(),window._dpi_sizing.changed,prepare=window._dpi_sizing.prepare,minimized=window._dpi_sizing.minimized,restored=window._dpi_sizing.restored)
    restore_window_geometry(window,bridge._full_size,position)
+   from System.Windows.Forms import FormWindowState
+   def focus():
+    if form.IsDisposed or form.Disposing:return
+    if form.WindowState==FormWindowState.Minimized:form.WindowState=FormWindowState.Normal
+    keep_visible(window);form.Show();form.Activate();form.BringToFront()
+   def dispatch():
+    if not form.IsDisposed and not form.Disposing:form.BeginInvoke(Action(focus))
+   # The native handle and geometry hooks now exist; drain one queued request.
+   activation_gate.ready(dispatch)
   window.events.before_show+=setup
+  window.events.closed+=activation_gate.close
   def remember():
    from System.Windows.Forms import FormWindowState
    form=window.native
@@ -244,6 +263,17 @@ def main(argv=None):
   close_coordinator=CloseCoordinator(window,remember)
   window.events.closing+=close_coordinator.on_closing
   instance.publish(url,token)
+  if args.smoke_test:
+   # Exercise the real authenticated endpoint before any native form exists.
+   from http.client import HTTPConnection
+   if window.native is not None:raise RuntimeError('Early activation check requires an uncreated native form')
+   for _ in range(3):
+    connection=HTTPConnection('127.0.0.1',server.server_port,timeout=2)
+    try:
+     connection.request('POST','/'+token+'/activate',body=b'{}',headers={'X-Amp-Token':token,'Content-Type':'application/json'})
+     reply=connection.getresponse()
+     if reply.status!=200 or json.loads(reply.read(4096)).get('activated') is not True:raise RuntimeError('Early activation was not accepted')
+    finally:connection.close()
   close_save_release=None
   def smoke():
    nonlocal close_save_release
@@ -296,7 +326,8 @@ def main(argv=None):
     if any(abs(a-b)>1 for a,b in zip(ui(lambda:normal_window_size(window)),original_size)):raise RuntimeError('Full size did not restore')
     import serial
     if serial.VERSION!='3.5':raise RuntimeError('Pinned serial runtime missing')
-    # Test activation IPC without launching another window or reader.
+    # Test a separate activation after readiness, independent of early requests.
+    activation.clear()
     import subprocess
     original_worker=controller.worker.pid
     launch=[sys.executable]+([] if getattr(sys,'frozen',False) else [str(Path(__file__).resolve())])+['--demo','--http-port','0','--settings',str(args.settings)]
@@ -364,7 +395,7 @@ def main(argv=None):
      bridge.save_preferences=delayed_save
      window.evaluate_js("prefs.theme='dark';applyView();prefs.theme='light';applyView()")
      if not started.wait(3):raise RuntimeError('Close test save was not in flight')
-    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves','explicit Simulation launch notice and restricted mode selector','abrupt simulator reader exit, responsive state API, explicit Disconnect and manual recovery']}
+    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','authenticated activation before native form creation','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves','explicit Simulation launch notice and restricted mode selector','abrupt simulator reader exit, responsive state API, explicit Disconnect and manual recovery']}
     args.settings.parent.mkdir(parents=True,exist_ok=True);args.settings.with_suffix('.smoke.json').write_text(json.dumps(report,indent=2))
    except Exception as exc:
     import traceback
@@ -382,6 +413,7 @@ def main(argv=None):
    if persisted.get('theme')!='light':raise RuntimeError('Closing lost the latest queued preference')
    path=args.settings.with_suffix('.smoke.json');report=json.loads(path.read_text(encoding='utf-8'));report['checks'].append('close during an in-flight preference save retains latest choice');path.write_text(json.dumps(report,indent=2),encoding='utf-8')
  finally:
+  activation_gate.close()
   if server:
    discovery=server.RequestHandlerClass.discovery;discovery.stop()
    if discovery.thread:discovery.thread.join(5)
