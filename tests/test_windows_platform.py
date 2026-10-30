@@ -27,11 +27,37 @@ class PlatformTests(unittest.TestCase):
    self.assertNotIn('OM Power',str(platform_paths.data_directory()))
 
 class FakeSerial:
- def __init__(self,**kwargs):self.options=kwargs;self.in_waiting=0;self.closed=False;self.writes=[];self.reset=False
+ def __init__(self,**kwargs):self.options=kwargs;self.in_waiting=0;self.closed=False;self.writes=[];self.reset=False;self.timeout=kwargs['timeout']
  def reset_input_buffer(self):self.reset=True
  def read(self,count):return b''
  def write(self,data):self.writes.append(data);return len(data)
  def close(self):self.closed=True
+
+class TimeoutTrackingSerial(FakeSerial):
+ # Like pyserial's setter, every assignment reconfigures an open port.
+ def __init__(self,**kwargs):
+  self.timeout_assignments=[];super().__init__(**kwargs);self.timeout_assignments.clear()
+ @property
+ def timeout(self):return self._timeout
+ @timeout.setter
+ def timeout(self,value):self.timeout_assignments.append(value);self._timeout=value
+
+class SerialReadTimeoutTests(unittest.TestCase):
+ def setUp(self):
+  # Exercise the adapter read boundary without opening hardware or an OS lease.
+  self.t=transport.WindowsSerialTransport.__new__(transport.WindowsSerialTransport)
+  self.t.serial=TimeoutTrackingSerial(timeout=.05)
+ def test_unchanged_read_timeout_does_not_reconfigure_serial_port(self):
+  for _ in range(10):self.assertEqual(self.t.read(.05),b'')
+  self.assertEqual(self.t.serial.timeout_assignments,[])
+ def test_shorter_deadline_applied_once_and_normal_timeout_restored(self):
+  for timeout in (.012,.012,.05,.05):self.t.read(timeout)
+  self.assertEqual(self.t.serial.timeout_assignments,[.012,.05])
+  self.assertEqual(self.t.serial.timeout,.05)
+ def test_timeout_clamping_preserved_without_redundant_reconfiguration(self):
+  for timeout in (-1,-1,1,1):self.t.read(timeout)
+  self.assertEqual(self.t.serial.timeout_assignments,[0,.25])
+  self.assertEqual(self.t.serial.writes,[])
 
 @unittest.skipUnless(sys.platform=='win32','Windows serial adapter and OS byte-range lease')
 class SerialTests(unittest.TestCase):
