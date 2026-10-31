@@ -13,6 +13,14 @@ def fail_simulator_reader(config,events,commands,stop):
  with patch('engine.Session.poll',side_effect=OSError('Synthetic reader failure')):engine.worker_main(config,events,commands,stop)
 
 class LaunchTests(unittest.TestCase):
+ def test_ordinary_launch_uses_hardware_but_review_and_smoke_remain_offline(self):
+  self.assertEqual(windows_launch.initial_mode(),'hardware')
+  self.assertEqual(windows_launch.initial_mode(frozen=True,executable='KPA1500 Control.exe'),'hardware')
+  self.assertEqual(windows_launch.initial_mode(frozen=True,executable='KPA1500 Control Review.exe'),'simulation')
+  self.assertEqual(windows_launch.initial_mode(smoke=True),'simulation')
+  self.assertEqual(windows_launch.initial_mode(demo=True),'simulation')
+  self.assertEqual(windows_launch.initial_mode(read_only=True),'read-only')
+  self.assertEqual(windows_launch.initial_mode(hardware=True,frozen=True,executable='KPA1500 Control Review.exe'),'hardware')
  def value(self,mode='read-only'):return dict(mode=mode,confirmed=True,connection=dict(mode='tcp',host='192.0.2.18',tcp_port=1500,baud=230400))
  def state(self):return dict(state=dict(status='disconnected'),actions=[])
  def test_modes_are_explicit_validated_and_profiles_are_distinct(self):
@@ -73,13 +81,13 @@ class LaunchTests(unittest.TestCase):
  def test_hardware_modes_start_disconnected_without_even_enumerating_ports(self):
   with tempfile.TemporaryDirectory() as folder:
    base=pathlib.Path(folder)/'sim.json'
-   for flag,mode in [('--read-only','read-only'),('--hardware','hardware')]:
+   for flags,mode in [([], 'hardware'),(['--read-only'],'read-only'),(['--hardware'],'hardware')]:
     profile=windows_launch.mode_settings(base,mode);profile.write_text(json.dumps(dict(mode='tcp',host='192.0.2.18',tcp_port=1500,auto_connect=True,share_readings=False)))
     server=MagicMock();server.server_port=12345;server.RequestHandlerClass.discovery.thread=None
     view=types.SimpleNamespace(__file__=str(pathlib.Path(folder)/'webview/__init__.py'),settings={},create_window=Mock(return_value=MagicMock()),start=Mock())
     with patch.object(windows_app.sys,'platform','win32'),patch.dict('sys.modules',{'webview':view}),patch('windows_forms.install'),patch('windows_app.configure_process_dpi'),patch('windows_app.ensure_webview2_runtime'),patch('windows_app.Instance') as instance,patch('windows_app.ThreadingHTTPServer',return_value=server),patch('socket.socket',side_effect=AssertionError('network forbidden')),patch('engine.SerialTransport',side_effect=AssertionError('USB forbidden')),patch('engine.ports',side_effect=AssertionError('enumeration forbidden')),patch.object(engine.Controller,'connect',side_effect=AssertionError('startup connect forbidden')):
      instance.return_value.acquire.return_value=True
-     self.assertEqual(windows_app.main([flag,'--settings',str(base)]),0)
+     self.assertEqual(windows_app.main(flags+['--settings',str(base)]),0)
      instance.return_value.close.assert_called_once();self.assertIn(windows_launch.MODES[mode],view.create_window.call_args.args[0]);view.start.assert_called_once()
  def test_endpoint_launch_and_handoff_refuse_existing_target_without_activation(self):
   from windows_instance import Instance

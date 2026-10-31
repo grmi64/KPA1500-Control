@@ -11,7 +11,7 @@ from windows_preferences import Preferences
 from version import VERSION,BUILD
 from windows_dpi import configure_process_dpi,window_dpi,DpiWindowHook,set_window_bounds
 from windows_runtime import ensure_webview2_runtime
-from windows_launch import MODES,LaunchWorkflow,mode_settings,launch_replacement
+from windows_launch import MODES,LaunchWorkflow,mode_settings,launch_replacement,initial_mode
 from transport import tcp_endpoint,BAUDS
 from platform_paths import serial_port
 
@@ -179,7 +179,7 @@ def main(argv=None):
  parser.add_argument('--settings',type=Path,default=data_directory()/'Windows/simulation.json');parser.add_argument('--http-port',type=int,default=0)
  parser.add_argument('--connection-type',choices=('usb','tcp'));parser.add_argument('--usb-port');parser.add_argument('--baud',type=int,default=230400);parser.add_argument('--host');parser.add_argument('--tcp-port',type=int,default=1500)
  parser.add_argument('--smoke-test',action='store_true');parser.add_argument('--smoke-reopen',action='store_true');parser.add_argument('--smoke-close-test',action='store_true');args=parser.parse_args(argv)
- mode='read-only' if args.read_only else 'hardware' if args.hardware else 'simulation'
+ mode=initial_mode(demo=args.demo,read_only=args.read_only,hardware=args.hardware,smoke=args.smoke_test,frozen=getattr(sys,'frozen',False),executable=sys.executable)
  if (args.smoke_test or args.smoke_reopen or args.smoke_close_test) and mode!='simulation':parser.error('Smoke tests must remain offline in Simulation.')
  if args.smoke_reopen and not args.smoke_test:parser.error('Reopen smoke requires --smoke-test')
  if (args.connection_type or args.usb_port or args.host) and mode=='simulation':parser.error('Hardware endpoints require an explicit Read-only or Hardware control mode.')
@@ -292,8 +292,8 @@ def main(argv=None):
     wait_js("snapshot?.state?.status === 'live'")
     wait_js("snapshot?.state?.demo === true")
     wait_js("!document.getElementById('top').disabled")
-    wait_js("!document.getElementById('launchPanel').hidden && document.getElementById('accessNotice').textContent.includes('Simulation') && document.getElementById('applyLaunchMode').disabled")
-    wait_js("getComputedStyle(document.getElementById('accessNotice')).display !== 'none'")
+    wait_js("!document.getElementById('launchPanel').hidden && document.getElementById('accessNotice').hidden && document.getElementById('applyLaunchMode').disabled")
+    wait_js("getComputedStyle(document.getElementById('demoBanner')).display !== 'none'")
     if args.smoke_reopen:
      wait_js("prefs.theme === 'light' && prefs.measurement === 'frequency' && prefs.callsign === 'REVIEW' && prefs.sections.faults === false")
     window.evaluate_js("prefs.compact=false;prefs.theme='dark';applyView();document.getElementById('view').click();document.getElementById('theme').click()")
@@ -301,7 +301,7 @@ def main(argv=None):
     window.evaluate_js("document.getElementById('top').checked=true;document.getElementById('top').onchange()")
     wait_js("prefs.top === true")
     window.evaluate_js("document.getElementById('top').checked=false;document.getElementById('top').onchange();document.getElementById('view').click()")
-    wait_js("getComputedStyle(document.getElementById('accessNotice')).display !== 'none'")
+    wait_js("getComputedStyle(document.getElementById('demoBanner')).display !== 'none'")
     from System import Action
     from System.Windows.Forms import FormWindowState
     def ui(call):
@@ -399,7 +399,7 @@ def main(argv=None):
      bridge.save_preferences=delayed_save
      window.evaluate_js("prefs.theme='dark';applyView();prefs.theme='light';applyView()")
      if not started.wait(3):raise RuntimeError('Close test save was not in flight')
-    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','authenticated activation before native form creation','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves','explicit Simulation launch notice and restricted mode selector','abrupt simulator reader exit, responsive state API, explicit Disconnect and manual recovery']}
+    report={'status':'passed' ,'offline_only':controller.offline_only,'sharing':controller.config['share_readings'],'auto_connect':controller.config['auto_connect'],'final_state':controller.snapshot()['state']['status'],'checks':['real WebView2 rendering','Full/Compact','Light/Dark','stay-on-top bridge','simulated mode/fan/tune/cancel/RF/power controls','return to Standby','instance activation IPC','authenticated activation before native form creation','About/version','fake discovery progress/cancel/select','native preferences persistence','pinned serial runtime import','stale/error rendering and disabled controls','maximized Compact/Full restore','persistent simulation labels','serialized preference saves','persistent Simulation banner and restricted mode settings','abrupt simulator reader exit, responsive state API, explicit Disconnect and manual recovery']}
     args.settings.parent.mkdir(parents=True,exist_ok=True);args.settings.with_suffix('.smoke.json').write_text(json.dumps(report,indent=2))
    except Exception as exc:
     import traceback
