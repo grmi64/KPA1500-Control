@@ -20,7 +20,7 @@ class WindowRestoreTests(unittest.TestCase):
    with self.subTest(state=state),patch.dict(sys.modules,self.modules()),patch('windows_app.window_dpi',return_value=120),patch('windows_app.keep_visible'):
     window=self.window(state);bridge=DisplayBridge();bridge._window=window
     bridge._apply_display({'compact':True,'alwaysOnTop':True})
-    self.assertEqual(bridge._full_size,(1000,800));self.assertEqual((window.width,window.height),(410,540));self.assertEqual(window.native.WindowState,0)
+    self.assertEqual(bridge._full_size,(1000,800));self.assertEqual((window.width,window.height),(430,540));self.assertEqual(window.native.WindowState,0)
     bridge._apply_display({'compact':False,'alwaysOnTop':False})
     self.assertEqual((window.width,window.height),(1000,800));self.assertEqual(window.native.WindowState,0)
  def test_normal_full_size_uses_native_rounding_instead_of_floored_getters(self):
