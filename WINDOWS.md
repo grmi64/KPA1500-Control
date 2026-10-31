@@ -1,5 +1,7 @@
 # KPA1500 Control Windows development candidate
 
+Current distribution: [signed Windows Preview 0.1.25/build 26](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26). Hardware and physical two-monitor acceptance passed for the recorded setup. Use [installation](WINDOWS-INSTALL.md) and [acceptance/limitations](WINDOWS-RELEASE-CANDIDATE.md) for current user guidance. Earlier development-only statements below retain their milestone context.
+
 This Windows development candidate starts in **Simulation** by default. The Windows launch panel offers Simulation, Read-only amplifier telemetry and Hardware control. These local changes have only offline validation; no hardware-enabled packaged acceptance or release approval is implied. No radio keying or drive-control feature exists.
 
 ## Launch modes

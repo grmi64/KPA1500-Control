@@ -1,6 +1,6 @@
 # KPA1500 Control — Windows data handling
 
-Prepared October 27, 2026 for the Windows 0.1.25/build 26 candidate. This statement describes application behavior checked against the local source. It is finalized locally for release preparation; a public privacy-policy URL has not been published or assigned. It does not describe Microsoft's or GitHub's services as if they were part of this application's own data handling.
+Prepared October 27, 2026 for the Windows 0.1.25/build 26 candidate. This statement describes application behavior checked against the local source. This repository page is the data-handling statement for the Windows Preview; no separate hosted privacy-policy URL has been assigned. It does not describe Microsoft's or GitHub's services as if they were part of this application's own data handling.
 
 ## Local data
 
@@ -34,4 +34,4 @@ Opening or posting to [GitHub Issues](https://github.com/grmi64/KPA1500-Control/
 
 Local settings and WebView2 data can remain after the portable application folder is removed. Close the app and any remaining KPA1500 processes before backing up or resetting its local settings/profile directory. Removing it loses saved preferences and connection information. Do not clear the shared Station Instruments lock directory to remove KPA1500 data. Closing a process releases its active OS-held lock even when an empty lock file remains.
 
-See [installation](WINDOWS-INSTALL.md) for removal/update instructions and [support](WINDOWS-SUPPORT.md) for data-handling questions. No hardware connection or publication was performed to prepare this statement. Physical multiple-monitor and final signed-package hardware acceptance remain pending.
+See [installation](WINDOWS-INSTALL.md) for removal/update instructions and [support](WINDOWS-SUPPORT.md) for data-handling questions. No hardware connection or publication was performed to prepare this statement. Physical two-monitor and final signed-package hardware acceptance subsequently passed for the recorded setup; see the release acceptance record.
