@@ -26,8 +26,22 @@ class NetworkProviderTests(unittest.TestCase):
   import windows_network
   with patch('windows_network.subprocess.run',return_value=Mock(stdout=json.dumps([self.record()]))) as run:
    self.assertEqual(len(windows_network.local_targets()),253)
-   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],5);self.assertEqual(run.call_args.kwargs['stdin'],__import__('subprocess').DEVNULL)
+   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],15);self.assertEqual(run.call_args.kwargs['stdin'],__import__('subprocess').DEVNULL)
 
+
+ def test_slow_configuration_process_exceeds_old_limit_but_finishes_once(self):
+  import subprocess,windows_network
+  real_run=subprocess.run;reply='import time;time.sleep(6);print('+repr(json.dumps([self.record()]))+')'
+  def delayed(old_limit):
+   def launch(argv,**kw):
+    if old_limit:kw['timeout']=5
+    return real_run([sys.executable,'-c',reply],**kw)
+   return launch
+  with patch('windows_network.subprocess.run',side_effect=delayed(True)) as old:
+   with self.assertRaises(subprocess.TimeoutExpired):windows_network.local_targets()
+   old.assert_called_once()
+  with patch('windows_network.subprocess.run',side_effect=delayed(False)) as current:
+   self.assertEqual(len(windows_network.local_targets()),253);current.assert_called_once()
 
  @unittest.skipUnless(sys.platform=='win32','Windows GUI standard-handle regression.')
  def test_gui_invalid_stdin_fails_without_explicit_handle_and_provider_succeeds(self):

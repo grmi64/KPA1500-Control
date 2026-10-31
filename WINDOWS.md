@@ -59,3 +59,5 @@ The guest-only `scripts/test-windows-msix-identity.ps1` checks logical profile i
 ## Packaged network regression
 
 Every Windows build runs `scripts/check-windows-network.py` against the frozen GUI executable after WebView2 loads in an isolated hidden window. It reads local interface configuration without creating an amplifier controller, scanning addresses or opening an equipment connection. A host with no default IPv4 route is recorded as an unsupported discovery layout, rather than a failed helper invocation. The report retains helper failure details for diagnosis. Use `scripts/test-windows.ps1 -FrozenExe '<path-to-exe>'` to include the same check with the standard source regressions, including against a signed package. Numeric discovery progress uses shared Mac/Windows JavaScript and is covered by `tests/test_discovery_ui.cjs`.
+
+Windows interface enumeration has a single bounded 15-second allowance for starting PowerShell and loading its network providers. This does not change amplifier query deadlines or add automatic discovery/control retries. Helper failures retain their reason instead of being reported only as no amplifier found.
