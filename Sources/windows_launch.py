@@ -3,7 +3,15 @@ import os,subprocess,sys,threading
 from pathlib import Path
 from platform_paths import serial_port,settings_path
 from transport import BAUDS,tcp_endpoint
+from windows_identity import REVIEW_NAME
 MODES={'simulation':'Simulation','read-only':'Read-only telemetry','hardware':'Hardware control'}
+
+def initial_mode(*,demo=False,read_only=False,hardware=False,smoke=False,frozen=False,executable=''):
+ """Ordinary launches wait for Connect; review and smoke launches stay offline."""
+ if read_only:return 'read-only'
+ if hardware:return 'hardware'
+ if demo or smoke or (frozen and Path(executable).stem.casefold()==REVIEW_NAME.casefold()):return 'simulation'
+ return 'hardware'
 def mode_settings(base,mode):
  if mode not in MODES:raise ValueError('Choose Simulation, Read-only or Hardware control.')
  base=settings_path(base)

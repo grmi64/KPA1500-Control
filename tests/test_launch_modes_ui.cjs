@@ -13,10 +13,12 @@ vm.runInContext(source.slice(source.indexOf('function paintControls()'),source.i
 vm.runInContext(source.slice(source.indexOf('async function control('),source.indexOf("document.querySelectorAll('[data-action]').forEach")),c);
 (async()=>{
  for(mode of ['simulation','read-only','hardware']){
-  await c.setupWindowsLaunch();assert.equal($('launchPanel').hidden,false);assert.equal($('accessNotice').hidden,false);assert.equal($('launchMode').value,mode);
+  await c.setupWindowsLaunch();assert.equal($('launchPanel').hidden,false);assert.equal($('accessNotice').hidden,mode!=='read-only');assert.equal($('launchMode').value,mode);
+  assert.equal($('simulatorConnection').hidden,mode!=='simulation');assert.equal($('simulatorConnection').disabled,mode!=='simulation');
+  assert.equal($('autoConnectSetting').hidden,true);assert.match($('connectionPolicy').textContent,/open disconnected/);
   assert.equal($('applyLaunchMode').disabled,false);
-  if(mode==='read-only')assert.match($('accessNotice').textContent,/READ-ONLY.*blocked/);
-  if(mode==='hardware')assert.match($('accessNotice').textContent,/HARDWARE CONTROL.*RF and drive/);
+  if(mode==='read-only')assert.match($('accessNotice').textContent,/READ-ONLY.*disabled/);
+  else assert.equal($('accessNotice').textContent,'','No duplicate simulation banner or hardware instructions above meters');
  }
  const before=requestCount;await $('applyLaunchMode').onclick();assert.equal(requestCount,before,'Cancel must never call native bridge');
  confirmResult=true;const pending=$('applyLaunchMode').onclick();await Promise.resolve();const beforeMessage=messageCount;
@@ -40,7 +42,8 @@ vm.runInContext(source.slice(source.indexOf('async function control('),source.in
  c.snapshot.reader_present=true;c.snapshot.local_service_unavailable=true;c.paintControls();assert.equal($('disconnect').disabled,true,'A lost local service still cannot receive requests');
  // The permanent access notice is outside Full-only containers and collapsible connection sections.
  assert.match(html,/<div id="accessNotice" class="demo-banner" role="status" hidden><\/div>/);
- assert.match(html,/<section id="launchPanel" class="card full-only" hidden>/);
+ assert.match(html,/<div id="connectionContent"><section id="launchPanel" class="launch-settings" hidden>/);
+ assert.ok(html.indexOf('id="launchPanel"')>html.indexOf('class="meter-grid"'),'Mode settings belong after the instruments');
  assert.equal((html.match(/id="host"/g)||[]).length,1,'Reuse ordinary endpoint fields');
  assert.equal((html.match(/id="port"/g)||[]).length,1);
  console.log('PASS: explicit launch modes, cancel/acknowledgement ordering, permanent notices, reused endpoint fields and read-only controls/API guards.');

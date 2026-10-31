@@ -20,12 +20,14 @@ function postWindowsPreferences(options){
  }).catch(error=>{nativeSaveError=error.message;message('Window preferences could not be saved: '+error.message,true);});
  return nativeUpdates;
 }
-window.addEventListener?.('pywebviewready',async()=>{await setupWindowsLaunch();const restored=await window.pywebview.api.load_preferences();prefs={...prefs,...restored};native={postMessage:postWindowsPreferences};applyView();if(snapshot)paint();const about=document.createElement('button');about.textContent='About';about.id='windowsAbout';about.onclick=()=>window.pywebview.api.show_about();document.querySelector('.view-toolbar').appendChild(about);$('connectionHint').textContent='USB ports are listed without identification probes. Select the amplifier explicitly.';$('discoveryHelp').textContent='USB: use Refresh and explicitly select the Host PC COM port; no automatic USB probes. TCP: at most one local /24 on the default IPv4 interface; no routed scans. Simulation uses synthetic discovery; hardware discovery runs only when requested.';if(windowsLaunch?.mode==='simulation')$('discoveryStatus').textContent='Simulation: no USB devices or network are scanned.';});
+window.addEventListener?.('pywebviewready',async()=>{await setupWindowsLaunch();const restored=await window.pywebview.api.load_preferences();prefs={...prefs,...restored};native={postMessage:postWindowsPreferences};applyView();if(snapshot)paint();const about=document.createElement('button');about.textContent='About';about.id='windowsAbout';about.onclick=()=>window.pywebview.api.show_about();document.querySelector('.view-toolbar').appendChild(about);$('connectionHint').textContent='USB ports are listed without identification probes. Select the amplifier explicitly.';$('discoveryHelp').textContent='USB: use Refresh and explicitly select the Host PC COM port; no automatic USB probes. TCP: searches the local IPv4 network (up to 254 addresses). Select a discovered amplifier, then click Connect.';if(windowsLaunch?.mode==='simulation')$('discoveryStatus').textContent='Simulation: no USB devices or network are scanned.';});
 let windowsLaunch=null;
 async function setupWindowsLaunch(){
  windowsLaunch=await window.pywebview.api.launch_info();
  $('launchPanel').hidden=false;$('launchMode').value=windowsLaunch.mode;
- $('accessNotice').hidden=false;$('accessNotice').textContent=windowsLaunch.mode==='simulation'?'Simulation · No hardware connection.':windowsLaunch.mode==='read-only'?'READ-ONLY TELEMETRY · All operating, tuning, power and wake commands are blocked.':'HARDWARE CONTROL · Commands affect the amplifier. You control RF and drive power.';
+ $('simulatorConnection').hidden=windowsLaunch.mode!=='simulation';$('simulatorConnection').disabled=windowsLaunch.mode!=='simulation';
+ $('autoConnectSetting').hidden=true;$('connectionPolicy').textContent='USB baud must match the amplifier’s SERIAL SPEED HOST. Hardware modes open disconnected. Click Connect when ready; reconnecting does not replay controls.';
+ $('accessNotice').hidden=windowsLaunch.mode!=='read-only';$('accessNotice').textContent=windowsLaunch.mode==='read-only'?'READ-ONLY TELEMETRY · Amplifier controls are disabled.':'';
  $('applyLaunchMode').disabled=!windowsLaunch.allowed;
  $('applyLaunchMode').onclick=async()=>{
   try{

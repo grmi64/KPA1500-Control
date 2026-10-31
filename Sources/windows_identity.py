@@ -17,7 +17,7 @@ def numeric_version(version=VERSION,build=BUILD):
 def version_resource(name):
  if name not in (PRODUCT_NAME,REVIEW_NAME):raise ValueError('Unknown Windows build identity.')
  version=numeric_version();version_text='.'.join(map(str,version))
- strings={'CompanyName':DEVELOPER,'FileDescription':name,'FileVersion':version_text,'InternalName':INTERNAL_NAME+('Review' if name==REVIEW_NAME else ''),'LegalCopyright':COPYRIGHT,'OriginalFilename':name+'.exe','ProductName':PRODUCT_NAME,'ProductVersion':VERSION,'Comments':'Development candidate; not a published release.'}
+ strings={'CompanyName':DEVELOPER,'FileDescription':name,'FileVersion':version_text,'InternalName':INTERNAL_NAME+('Review' if name==REVIEW_NAME else ''),'LegalCopyright':COPYRIGHT,'OriginalFilename':name+'.exe','ProductName':PRODUCT_NAME,'ProductVersion':VERSION,'Comments':'Offline review build.' if name==REVIEW_NAME else 'Windows Preview.'}
  table=',\n'.join('    StringStruct('+repr(k)+', '+repr(v)+')' for k,v in strings.items())
  return ("# Generated from Sources/version.py; local candidate, not Store identity.\n"
   +f"VSVersionInfo(ffi=FixedFileInfo(filevers={version!r}, prodvers={version!r}, mask=0x3f, flags=0x2, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)), kids=[\n"
