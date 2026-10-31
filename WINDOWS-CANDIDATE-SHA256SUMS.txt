@@ -1,2 +1,2 @@
-09d4796044eff347e55499d91c2faab503fcfccba9411f76f1f39387db608ddd  dist/windows/startup-a400cfe-2026-10-30/KPA1500-Control-0.1.25-build26-startup-a400cfe-Windows-x64-signed.zip
-a719fd27942cb83f4534c2f8a9191016701085b9d4a9d4539498981d32a48e27  .tmp/merged20-a400cfe-2026-10-30/extracted/KPA1500 Control/KPA1500 Control.exe
+53bda17ce7f7c5ab765e116e0cd95a01242a6ab07238917af72b84993a83e0bf  dist/windows/beta-launch-build27-2026-10-30/KPA1500-Control-0.1.25-build27-beta-launch-Windows-x64-signed.zip
+56b3d1dc30bf235816e0a792e1a9c386696d1227e22dfdd9c48d553fd4c38e48  .tmp/beta-launch-build27-2026-10-30/extracted/KPA1500 Control/KPA1500 Control.exe

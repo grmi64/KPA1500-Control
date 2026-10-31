@@ -1,8 +1,8 @@
 # KPA1500 Control Windows development candidate
 
-Current distribution: [signed Windows Preview 0.1.25/build 26](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26). Hardware and physical two-monitor acceptance passed for the recorded setup. Use [installation](WINDOWS-INSTALL.md) and [acceptance/limitations](WINDOWS-RELEASE-CANDIDATE.md) for current user guidance. Earlier development-only statements below retain their milestone context.
+Current distribution: [signed Windows Preview 0.1.25/build 27](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build27). The owner approved Full and Compact views and authorized prerelease publication with hardware testing to be performed manually. Build 27 full hardware acceptance is not yet recorded. Use [installation](WINDOWS-INSTALL.md) and [acceptance/limitations](WINDOWS-RELEASE-CANDIDATE.md) for current user guidance. Earlier development-only statements below retain their milestone context.
 
-The next Windows Preview, 0.1.25/build 27, starts in **Hardware control, disconnected**. Choose USB or TCP/IP and click Connect when ready. Simulation remains optional under Connection → Application mode; simulation banners and the simulated-transmit control appear only for simulated sessions. Review-named builds and automated smoke tests remain offline by default. Build 27 is a new candidate and does not inherit build 26’s exact-package acceptance. No radio keying or drive-control feature exists.
+Windows Preview 0.1.25/build 27 starts in **Hardware control, disconnected**. Choose USB or TCP/IP and click Connect when ready. Simulation remains optional under Connection → Application mode; simulation banners and the simulated-transmit control appear only for simulated sessions. Review-named builds and automated smoke tests remain offline by default. Build 27 is a published beta and does not inherit build 26’s exact-package acceptance. No radio keying or drive-control feature exists.
 
 ## Launch modes
 
