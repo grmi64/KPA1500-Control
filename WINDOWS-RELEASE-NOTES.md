@@ -1,3 +1,17 @@
+# Windows Preview 0.1.25/build 27 — published beta
+
+[Download signed build 27](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build27) and its `SHA256SUMS.txt` release asset. Normal launch opens **Hardware control, disconnected**, with blank readings until Connect. Optional Simulation and Read-only telemetry are under Connection → Application mode. Hardware mode has no simulation banner or simulated-transmit control.
+
+Source/tag commit: `3e19bcb89c2f0dd77982399374ca868a01752da8`; PR #23 merge: `02e2f0d06529e60faaa2aa291a0566ccf44902d3` (identical source tree). ZIP SHA256: `53bda17ce7f7c5ab765e116e0cd95a01242a6ab07238917af72b84993a83e0bf`. EXE SHA256: `56b3d1dc30bf235816e0a792e1a9c386696d1227e22dfdd9c48d553fd4c38e48`. Numeric Windows version: 0.1.25.27; Windows Preview/prerelease retained.
+
+Publication was authorized October 30, 2026 with **hardware testing to be done manually by the owner; no build 27 full hardware acceptance is claimed**. The owner approved Full and Compact views. Validation passed: 306 Python tests/two expected skips, all 12 JavaScript suites, two exact signed offline smoke runs (19 checks each), 78 native signatures, 24 frozen source-module comparisons, and the ordinary disconnected/blank-reading launch check. Independent Mac execution was not performed for this change; no CI pass claimed.
+
+The published ZIP/checksum were downloaded anonymously and hash-verified. No installation was performed. Raw evidence and the Mac review bundle remain local. This publication does not modify the signed ZIP or its older bundled documents. Microsoft Store distribution remains deferred.
+
+## Previous build 26 records — historical
+
+The records below describe build 26 and its completed acceptance. They do not establish build 27 hardware acceptance, and unversioned manifest/checksum links now identify the current build 27 beta.
+
 # KPA1500 Control — Windows Preview release notes
 
 Publication update: [Windows Preview 0.1.25/build 26](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26) is published on GitHub with the unchanged accepted signed ZIP and checksum. No installation was performed. Statements below about no publication describe the acceptance or earlier preparation milestones.

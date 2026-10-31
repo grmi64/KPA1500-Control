@@ -1,10 +1,10 @@
 # KPA1500 Control
 
-Standalone KPA1500 amplifier monitoring and controls for macOS and Windows. **[Download Windows Preview 0.1.25/build 26](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26)**: signed portable ZIP for Windows 11 x64. Verify the included SHA256 checksum, extract the entire folder, and open `KPA1500 Control.exe`. Microsoft Edge WebView2 Evergreen Runtime is required. Normal launch starts in Simulation; explicit Read-only and Hardware control launch modes are documented in [WINDOWS.md](WINDOWS.md).
+Standalone KPA1500 amplifier monitoring and controls for macOS and Windows. **[Download Windows Preview 0.1.25/build 27](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build27)**: signed portable ZIP for Windows 11 x64. Verify the included SHA256 checksum, extract the entire folder, and open `KPA1500 Control.exe`. Microsoft Edge WebView2 Evergreen Runtime is required. Normal launch opens Hardware control, disconnected; explicit Read-only and Hardware control launch modes are documented in [WINDOWS.md](WINDOWS.md).
 
 Project-owned code and artwork use the [MIT License](LICENSE); bundled third-party components retain their own notices. See [LICENSING.md](LICENSING.md) and [Windows release identity](WINDOWS-RELEASE-IDENTITY.md).
 
-Current Windows Preview: [acceptance, exact hashes and limitations](WINDOWS-RELEASE-CANDIDATE.md), [installation](WINDOWS-INSTALL.md), [support](WINDOWS-SUPPORT.md), and [data handling](WINDOWS-DATA-HANDLING.md). Hardware and physical two-monitor acceptance passed for the recorded setup. The operator controls RF and radio drive; the application does not send radio CAT keying or drive-power commands.
+Current Windows Preview: [acceptance, exact hashes and limitations](WINDOWS-RELEASE-CANDIDATE.md), [installation](WINDOWS-INSTALL.md), [support](WINDOWS-SUPPORT.md), and [data handling](WINDOWS-DATA-HANDLING.md). Build 27 is published for beta testing; the owner will perform hardware testing manually. Both views were approved, but full hardware acceptance is not yet recorded. Earlier build 26 acceptance remains attributed to that binary. The operator controls RF and radio drive; the application does not send radio CAT keying or drive-power commands.
 
 The [publication audit](PUBLICATION-AUDIT-2026-10-30.md) records the history, secret-scanning and licensing review.
 
