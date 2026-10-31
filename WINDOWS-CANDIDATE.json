@@ -12,7 +12,7 @@
   "source_tree": "596af1ce86f0c31243b82a24a0b35ba170a23729",
   "review_and_merge_trees_identical": true,
   "pr_url": "https://github.com/grmi64/KPA1500-Control/pull/20",
-  "status": "Full functional release acceptance PASSED on exact signed merge package; not installed or published",
+  "status": "Full functional acceptance PASSED on exact signed merge package; Windows Preview published on GitHub; not installed",
   "accepted_utc": "2026-10-30T23:35:32.976265+00:00",
   "record_layout": "repository",
   "artifact_path_base": {
@@ -82,9 +82,11 @@
     "designation": "Windows Preview",
     "prerelease_flag": "retained",
     "distribution_route": "portable ZIP first; Microsoft Store deferred",
-    "publication_authorized": false,
+    "publication_authorized": true,
     "installed": false,
-    "published": false
+    "published": true,
+    "release_url": "https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26",
+    "tag": "v0.1.25-windows-preview-build26"
   },
   "limits": [
     "Functional acceptance applies to the recorded setup/workload, not every hub, driver or RF power level.",

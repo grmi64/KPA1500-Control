@@ -1,6 +1,6 @@
 # KPA1500 Control — Windows support
 
-Support channel: [KPA1500-Control GitHub Issues](https://github.com/grmi64/KPA1500-Control/issues). The owner selected this channel for KPA1500. No personal email address is listed. This text is finalized locally for release preparation; no new page, issue or release has been published.
+Support channel: [KPA1500-Control GitHub Issues](https://github.com/grmi64/KPA1500-Control/issues). The owner selected this channel for KPA1500. No personal email address is listed. The signed Windows Preview is available through GitHub Releases.
 
 ## Reporting a problem
 
@@ -23,4 +23,4 @@ Review screenshots and logs before posting: GitHub issues may be public. Remove 
 - Close other copies before diagnosing a busy-instance or endpoint-ownership message. Do not delete shared lock files while applications are running.
 - A missing/stale reading or unavailable local backend should be reported with its exact status. Do not treat a disabled control as permission to retry equipment operations through another path.
 
-Known candidate limitations and exact evidence are in [WINDOWS-RELEASE-CANDIDATE.md](WINDOWS-RELEASE-CANDIDATE.md). Physical multiple-monitor and final signed-package hardware acceptance remain pending. Microsoft Store packaging/submission and publication have not been authorized by this support document. No Elecraft affiliation or endorsement is asserted.
+Known candidate limitations and exact evidence are in [WINDOWS-RELEASE-CANDIDATE.md](WINDOWS-RELEASE-CANDIDATE.md). Physical two-monitor and final signed-package hardware acceptance passed for the recorded setup. Microsoft Store distribution remains deferred. No Elecraft affiliation or endorsement is asserted.

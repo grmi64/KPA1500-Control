@@ -1,5 +1,7 @@
 # KPA1500 Control — accepted Windows Preview package
 
+Publication update: [Windows Preview 0.1.25/build 26](https://github.com/grmi64/KPA1500-Control/releases/tag/v0.1.25-windows-preview-build26) is published on GitHub with the unchanged accepted signed ZIP and checksum. No installation was performed. Statements below about no publication describe the acceptance or earlier preparation milestones.
+
 Accepted merge: `a400cfe04a09ac7c007186b0c7c1ab0d164b50cf` ([PR #20](https://github.com/grmi64/KPA1500-Control/pull/20)). Application **0.1.25/build 26, Windows Preview**, numeric Windows version 0.1.25.26; prerelease flag retained. Portable ZIP first; Microsoft Store deferred.
 
 - ZIP: `KPA1500-Control-0.1.25-build26-startup-a400cfe-Windows-x64-signed.zip`.
