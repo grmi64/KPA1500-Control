@@ -169,7 +169,7 @@ class DisplayBridge:
    w.native.WindowState=FormWindowState.Normal
    w._pending_dpi_bounds=None
    if hasattr(w,'_dpi_sizing'):w._dpi_sizing.discard_restore()
-   w.resize(*((410,540) if small else self._full_size));self._compact=small
+   w.resize(*((430,540) if small else self._full_size));self._compact=small
   w.on_top=options['alwaysOnTop'];keep_visible(w)
 
 def main(argv=None):

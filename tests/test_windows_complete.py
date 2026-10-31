@@ -26,7 +26,39 @@ class NetworkProviderTests(unittest.TestCase):
   import windows_network
   with patch('windows_network.subprocess.run',return_value=Mock(stdout=json.dumps([self.record()]))) as run:
    self.assertEqual(len(windows_network.local_targets()),253)
-   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],5)
+   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],5);self.assertEqual(run.call_args.kwargs['stdin'],__import__('subprocess').DEVNULL)
+
+
+ @unittest.skipUnless(sys.platform=='win32','Windows GUI standard-handle regression.')
+ def test_gui_invalid_stdin_fails_without_explicit_handle_and_provider_succeeds(self):
+  # Run in an isolated process: never alter the test runner's standard handles.
+  # A fixed synthetic reply replaces PowerShell; no network config/probes needed.
+  import subprocess
+  code="""
+import ctypes,json,subprocess,sys
+from unittest.mock import patch
+sys.path.insert(0,'Sources')
+import windows_network
+kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+kernel.GetStdHandle.argtypes=[ctypes.c_ulong];kernel.GetStdHandle.restype=ctypes.c_void_p
+kernel.SetStdHandle.argtypes=[ctypes.c_ulong,ctypes.c_void_p];kernel.SetStdHandle.restype=ctypes.c_int
+key=(-10)&0xffffffff;original=kernel.GetStdHandle(key)
+assert kernel.SetStdHandle(key,ctypes.c_void_p(-1))
+real_run=subprocess.run;results=[]
+try:
+ for reproduce_old in (True,False):
+  def route_reply(argv,**kw):
+   if reproduce_old:kw.pop('stdin',None)
+   return real_run([sys.executable,'-c',REPLY],**kw)
+  try:
+   with patch('windows_network.subprocess.run',side_effect=route_reply):hosts=windows_network.local_targets()
+   results.append(['ok',len(hosts)])
+  except OSError as error:results.append(['error',error.winerror])
+finally:kernel.SetStdHandle(key,original)
+print(json.dumps(results))
+""".replace('REPLY',repr('print('+repr(json.dumps([self.record()]))+')'))
+  result=subprocess.run([sys.executable,'-B','-c',code],cwd=pathlib.Path(__file__).resolve().parents[1],stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=15,check=True)
+  self.assertEqual(json.loads(result.stdout),[['error',6],['ok',253]])
 
 class DiscoveryTests(unittest.TestCase):
  def test_synthetic_discovery_cancel_and_completion_no_io(self):

@@ -24,6 +24,6 @@ def local_targets():
  # Fixed code and no interpolated user input. PowerShell reads configuration only.
  script="""$ErrorActionPreference='Stop'; $records=@(); foreach($route in (Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0')) { foreach($ip in (Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $route.InterfaceIndex | Where-Object { $_.AddressState -eq 'Preferred' -and -not $_.SkipAsSource })) { $records += @{address=$ip.IPAddress;prefix=[int]$ip.PrefixLength;gateway=$route.NextHop;metric=[int]($route.RouteMetric+$route.InterfaceMetric)} } }; ConvertTo-Json -Compress -InputObject @($records)"""
  shell=Path(os.environ.get('SystemRoot',r'C:\Windows'))/'System32/WindowsPowerShell/v1.0/powershell.exe'
- result=subprocess.run([str(shell),'-NoProfile','-NonInteractive','-Command',script],capture_output=True,text=True,encoding='utf-8',timeout=5,check=True,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+ result=subprocess.run([str(shell),'-NoProfile','-NonInteractive','-Command',script],stdin=subprocess.DEVNULL,capture_output=True,text=True,encoding='utf-8',timeout=5,check=True,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
  if len(result.stdout)>65536:raise ValueError('Oversized interface data.')
  return targets_from_records(json.loads(result.stdout))
