@@ -172,10 +172,32 @@ class DisplayBridge:
    w.resize(*((430,540) if small else self._full_size));self._compact=small
   w.on_top=options['alwaysOnTop'];keep_visible(w)
 
+def run_network_probe(output):
+ import webview
+ ensure_webview2_runtime(Path(webview.__file__).parent)
+ from windows_forms import install
+ install()
+ from windows_network_probe import run
+ import tempfile
+ result=[1]
+ with tempfile.TemporaryDirectory(prefix='kpa-network-host-',ignore_cleanup_errors=True) as storage:
+  window=webview.create_window('KPA1500 local network self-test',html='<html><body>Local configuration check</body></html>',width=360,height=440,hidden=True)
+  def check():
+   try:
+    if not window.events.loaded.wait(20):raise RuntimeError('Network self-test renderer did not load')
+    result[0]=run(output,renderer_ready=True)
+   except Exception as error:
+    Path(output).parent.mkdir(parents=True,exist_ok=True)
+    Path(output).write_text(json.dumps({'status':'failed','frozen':bool(getattr(sys,'frozen',False)),'hardware_probes':0,'exception':type(error).__name__,'message':str(error)}),encoding='utf-8')
+   finally:window.destroy()
+  webview.start(check,gui='edgechromium',private_mode=True,storage_path=storage)
+ return result[0]
+
 def main(argv=None):
  parser=argparse.ArgumentParser(description=__doc__)
  modes=parser.add_mutually_exclusive_group();modes.add_argument('--demo',action='store_true');modes.add_argument('--read-only',action='store_true');modes.add_argument('--hardware',action='store_true')
  parser.add_argument('--mode-handoff',action='store_true',help=argparse.SUPPRESS)
+ parser.add_argument('--network-self-test',type=Path,help=argparse.SUPPRESS)
  parser.add_argument('--settings',type=Path,default=data_directory()/'Windows/simulation.json');parser.add_argument('--http-port',type=int,default=0)
  parser.add_argument('--connection-type',choices=('usb','tcp'));parser.add_argument('--usb-port');parser.add_argument('--baud',type=int,default=230400);parser.add_argument('--host');parser.add_argument('--tcp-port',type=int,default=1500)
  parser.add_argument('--smoke-test',action='store_true');parser.add_argument('--smoke-reopen',action='store_true');parser.add_argument('--smoke-close-test',action='store_true');args=parser.parse_args(argv)
@@ -202,6 +224,7 @@ def main(argv=None):
   import faulthandler
   args.settings.parent.mkdir(parents=True,exist_ok=True);trace=args.settings.with_suffix('.trace.log').open('w');faulthandler.dump_traceback_later(30,file=trace)
  configure_process_dpi()
+ if args.network_self_test:return run_network_probe(args.network_self_test)
  instance=Instance(args.settings)
  if not instance.acquire(activate_existing=not (args.mode_handoff or endpoint is not None)):return 0
  preferences=Preferences(args.settings.with_suffix('.window.json'))
@@ -441,5 +464,5 @@ if __name__=='__main__':
  except Exception as exc:
   import ctypes
   if sys.stderr:print(str(exc),file=sys.stderr)
-  if not '--smoke-test' in sys.argv:ctypes.windll.user32.MessageBoxW(None,str(exc),'KPA1500 Control',0x10)
+  if not any(arg=='--smoke-test' or arg.startswith('--network-self-test') for arg in sys.argv):ctypes.windll.user32.MessageBoxW(None,str(exc),'KPA1500 Control',0x10)
   sys.exit(1)

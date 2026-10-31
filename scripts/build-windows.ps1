@@ -26,3 +26,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Dependency notice audit failed' }
 
 & $Python scripts/check-windows-identity.py --package $package --name $buildName
 if ($LASTEXITCODE -ne 0) { throw 'Windows identity audit failed' }
+
+# Exercise the actual frozen GUI runtime after WebView2 loads. Local settings
+# only: no controller, address probes, connections or amplifier commands.
+$networkEvidence = Join-Path $project ("build/windows/$buildName/network-self-test-" + [guid]::NewGuid().ToString('N') + '.json')
+& $Python scripts/check-windows-network.py --exe $exe --output $networkEvidence
+if ($LASTEXITCODE -ne 0) { throw 'Frozen network configuration regression failed' }

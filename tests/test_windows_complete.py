@@ -60,7 +60,36 @@ print(json.dumps(results))
   result=subprocess.run([sys.executable,'-B','-c',code],cwd=pathlib.Path(__file__).resolve().parents[1],stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=15,check=True)
   self.assertEqual(json.loads(result.stdout),[['error',6],['ok',253]])
 
+
+class NetworkProbeTests(unittest.TestCase):
+ def test_route_config_is_checked_without_device_probes(self):
+  import windows_network_probe
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',return_value=[NetworkProviderTests().record()]):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),0)
+   report=json.loads(path.read_text());self.assertEqual(report['target_count'],253);self.assertTrue(report['renderer_ready']);self.assertTrue(report['discovery_supported'])
+ def test_no_default_route_is_a_valid_offline_configuration(self):
+  import windows_network_probe
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',return_value=[]):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),0)
+   report=json.loads(path.read_text());self.assertEqual(report['status'],'passed');self.assertFalse(report['discovery_supported']);self.assertEqual(report['target_count'],0)
+ def test_helper_failure_cannot_be_reported_as_a_pass(self):
+  import windows_network_probe,subprocess
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',side_effect=subprocess.TimeoutExpired('fixed local query',5)):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),1)
+   report=json.loads(path.read_text());self.assertEqual(report['status'],'failed');self.assertEqual(report['exception'],'TimeoutExpired');self.assertIn('timed out',report['message'])
+
 class DiscoveryTests(unittest.TestCase):
+ def test_interface_failure_is_distinct_from_no_amplifier_and_retry_clears_it(self):
+  import subprocess
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',side_effect=subprocess.TimeoutExpired('fixed local query',5)),patch('discovery.identify',side_effect=AssertionError('No probes permitted')) as identify:
+   d=Discovery();d.start([],230400,1500);d.thread.join(2);state=d.snapshot()
+   identify.assert_not_called();self.assertEqual(state['total'],0);self.assertIn('No network scan performed',state['message']);self.assertIn('timed out after 5 seconds',state['message']);self.assertEqual(state['configuration_error']['type'],'TimeoutExpired')
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',return_value=['192.0.2.1']),patch('discovery.identify',return_value={'mode':'tcp','host':'192.0.2.1','tcp_port':1500}):
+   d.start([],230400,1500);d.thread.join(2);state=d.snapshot();self.assertIsNone(state['configuration_error']);self.assertEqual(len(state['results']),1)
+
  def test_synthetic_discovery_cancel_and_completion_no_io(self):
   with patch('discovery.local_targets',side_effect=AssertionError('network config read')),patch('discovery.identify',side_effect=AssertionError('device opened')):
    d=Discovery(offline=True);d.start(['COM10'],230400,1500)
