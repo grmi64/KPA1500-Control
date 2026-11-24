@@ -1,5 +1,5 @@
 """Local, token-protected UI service. No radio/CAT sockets; opt-in USB startup."""
-import argparse,json,multiprocessing,secrets,signal,threading
+import argparse,json,multiprocessing,secrets,signal,threading,re
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -10,6 +10,7 @@ ROOT=Path(__file__).parent
 
 def handler_for(controller,token,activate=None,simulate_discovery=False):
  discovery=Discovery(offline=simulate_discovery);dispatch=threading.Lock()
+ control_token=secrets.token_urlsafe(32);control_requests={}
  prefix='/'+token+'/'
  class Handler(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
@@ -22,6 +23,14 @@ def handler_for(controller,token,activate=None,simulate_discovery=False):
   def do_GET(self):
    if not self.host_ok():return self.reply(403,{'error':'Loopback host required.'})
    path=urlparse(self.path).path
+   if path=='/api/v1/power':
+    if self.headers.get('Origin'):return self.reply(403,{'error':'Backend requests only.'})
+    try:return self.reply(200,dict(controller.shared_power(),control_token=control_token))
+    except PermissionError as exc:return self.reply(403,{'error':str(exc)})
+   if path=='/api/v1/controls':
+    if self.headers.get('Origin'):return self.reply(403,{'error':'Backend requests only.'})
+    try:return self.reply(200,dict(controller.shared_controls(),control_token=control_token))
+    except PermissionError as exc:return self.reply(403,{'error':str(exc)})
    if path=='/api/v1/telemetry':
     try:return self.reply(200,controller.telemetry())
     except PermissionError as exc:return self.reply(403,{'error':str(exc)})
@@ -36,6 +45,7 @@ def handler_for(controller,token,activate=None,simulate_discovery=False):
   def do_POST(self):
    with dispatch:self.post()
   def post(self):
+   if urlparse(self.path).path in ('/api/v1/controls','/api/v1/power'):return self.control_post()
    if not self.host_ok() or self.headers.get('X-Amp-Token')!=token:return self.reply(403,{'error':'Local session token required.'})
    origin=self.headers.get('Origin')
    if origin and origin!='http://127.0.0.1:'+str(self.server.server_port):return self.reply(403,{'error':'Foreign origin rejected.'})
@@ -64,6 +74,39 @@ def handler_for(controller,token,activate=None,simulate_discovery=False):
     elif action=='control':result=controller.action(value)
     else:return self.reply(404,{'error':'Unknown operation.'})
     return self.reply(200,result)
+   except (OSError,ValueError,RuntimeError,TypeError) as exc:return self.reply(400,{'error':str(exc)})
+  def control_post(self):
+   supplied=self.headers.get('X-KPA-Feed-Token','')
+   if not self.host_ok() or self.headers.get('Origin') or not secrets.compare_digest(supplied,control_token):
+    return self.reply(403,{'error':'Local backend control token required.'})
+   try:
+    length=int(self.headers.get('Content-Length','0'))
+    if not 0<length<=1024:raise ValueError('Invalid control request size.')
+    value=json.loads(self.rfile.read(length))
+    if not isinstance(value,dict) or not isinstance(value.get('id'),str) or not re.fullmatch(r'[A-Za-z0-9_-]{16,80}',value['id']):
+     raise ValueError('A unique request ID is required.')
+    power=urlparse(self.path).path=='/api/v1/power'
+    if power:controller.shared_power()
+    else:controller.shared_controls()
+    if discovery.snapshot()['running']:raise ValueError('Finish discovery before changing amplifier controls.')
+    key=value['id'];fingerprint=(urlparse(self.path).path,value)
+    if key in control_requests:
+     previous,result=control_requests[key]
+     if previous!=fingerprint:raise ValueError('Request ID already used for different values.')
+     return self.reply(200,result)
+    # Keep spent IDs for this token's entire lifetime. When the bounded map
+    # is full, reject new IDs instead of evicting a receipt and replaying it.
+    # Duplicates above still return their original receipt at capacity.
+    if len(control_requests)>=128:
+     raise ValueError('Shared-control receipt capacity reached. Restart KPA1500 Control before sending a new shared request.')
+    # Reserve before execution, including uncertain failures. Never retry.
+    result={'queued':False,'error':'Receipt uncertain. Check the amplifier; no retry was sent.'}
+    control_requests[key]=(fingerprint,result)
+    action=controller.shared_power_action(value) if power else controller.shared_control_action(value)
+    result=dict(queued=action.get('status')=='queued',action=action)
+    control_requests[key]=(fingerprint,result)
+    return self.reply(200,result)
+   except PermissionError as exc:return self.reply(403,{'error':str(exc)})
    except (OSError,ValueError,RuntimeError,TypeError) as exc:return self.reply(400,{'error':str(exc)})
  Handler.discovery=discovery
  return Handler

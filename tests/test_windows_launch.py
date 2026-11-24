@@ -13,6 +13,11 @@ def fail_simulator_reader(config,events,commands,stop):
  with patch('engine.Session.poll',side_effect=OSError('Synthetic reader failure')):engine.worker_main(config,events,commands,stop)
 
 class LaunchTests(unittest.TestCase):
+ def test_network_self_test_returns_before_instance_controller_or_server(self):
+  with tempfile.TemporaryDirectory() as directory,patch.object(windows_app.sys,'platform','win32'),patch('windows_app.configure_process_dpi'),patch('windows_app.run_network_probe',return_value=0) as probe,patch('windows_app.Instance') as instance,patch('windows_app.Controller') as controller,patch('windows_app.ThreadingHTTPServer') as server:
+   output=pathlib.Path(directory)/'network.json'
+   self.assertEqual(windows_app.main(['--network-self-test',str(output)]),0)
+   probe.assert_called_once_with(output);instance.assert_not_called();controller.assert_not_called();server.assert_not_called()
  def test_ordinary_launch_uses_hardware_but_review_and_smoke_remain_offline(self):
   self.assertEqual(windows_launch.initial_mode(),'hardware')
   self.assertEqual(windows_launch.initial_mode(frozen=True,executable='KPA1500 Control.exe'),'hardware')

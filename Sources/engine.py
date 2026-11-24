@@ -96,20 +96,26 @@ class Controller:
  def __init__(self,settings,offline_only=False,read_only=False,manual_connect=False):
   self.offline_only=offline_only;self.read_only=read_only;self.manual_connect=manual_connect;self.launch_pending=False
   self.settings=Path(settings);self.guard=threading.RLock();self.operation=threading.Lock();self.worker=None;self.events=None;self.completion=None;self.worker_finished=False;self.commands=None;self.stop=None;self.generation=uuid.uuid4().hex;self.received=0;self.state={};self.action_log=[];self.fault_log=[];self.last_fault=None
-  self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False,'host':'','tcp_port':1500,'wake_mac':'','wake_broadcast':'255.255.255.255'}
+  self.config={'mode':'usb','port':'','baud':230400,'auto_connect':False,'share_readings':False,'share_controls':False,'share_power':False,'host':'','tcp_port':1500,'wake_mac':'','wake_broadcast':'255.255.255.255'}
   try:
-   saved=json.loads(self.settings.read_text());saved=saved if isinstance(saved,dict) else {};self.config.update({k:saved[k] for k in ('port','baud','host','tcp_port','wake_mac','wake_broadcast') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True;self.config['share_readings']=saved.get('share_readings') is True
+   saved=json.loads(self.settings.read_text());saved=saved if isinstance(saved,dict) else {};self.config.update({k:saved[k] for k in ('port','baud','host','tcp_port','wake_mac','wake_broadcast') if k in saved});self.config['auto_connect']=saved.get('auto_connect') is True;self.config['share_readings']=saved.get('share_readings') is True;self.config['share_controls']=saved.get('share_controls') is True and self.config['share_readings'];self.config['share_power']=saved.get('share_power') is True and self.config['share_readings']
   except (OSError,ValueError):saved={}
   self.startup_mode=saved.get('mode','usb') if isinstance(saved,dict) else 'usb'
   if self.startup_mode not in ('usb','tcp'):self.startup_mode='usb'
-  if self.offline_only:self.config.update(auto_connect=False,share_readings=False)
+  if self.offline_only:self.config.update(auto_connect=False,share_readings=False,share_controls=False,share_power=False)
   if self.manual_connect:self.config['auto_connect']=False
   self.config['mode']=self.startup_mode
-  self.clear('disconnected','Choose USB or TCP/IP and click Connect, or try Simulator.')
+  self.clear('disconnected','Choose USB or TCP/IP and click Connect.')
  def clear(self,status,message):self.state={'status':status,'message':message,'demo':self.offline_only};self.received=0
  def save_settings(self,value):
   if self.launch_pending:raise ValueError('A launch mode change is pending. Close the window to finish reopening.')
   port=value.get('port',self.config['port']);baud=value.get('baud',self.config['baud']);automatic=value.get('auto_connect',self.config['auto_connect']);sharing=value.get('share_readings',self.config['share_readings'])
+  controls=value.get('share_controls',self.config['share_controls']) if sharing else False
+  if type(controls) is not bool:raise ValueError('Choose whether to share Operate / Standby controls.')
+  if controls and (self.offline_only or self.read_only):raise ValueError('Control sharing is unavailable in offline or read-only mode.')
+  power_sharing=value.get('share_power',self.config['share_power']) if sharing else False
+  if type(power_sharing) is not bool:raise ValueError('Choose whether to share power controls.')
+  if power_sharing and (self.offline_only or self.read_only):raise ValueError('Power sharing is unavailable in offline or read-only mode.')
   mode=value.get('mode',self.startup_mode);host=value.get('host',self.config['host']);tcp_port=value.get('tcp_port',self.config['tcp_port'])
   if mode not in ('usb','tcp'):raise ValueError('Choose USB or TCP/IP for startup.')
   if type(sharing) is not bool:raise ValueError('Choose whether to share amplifier readings.')
@@ -124,7 +130,7 @@ class Controller:
   if host!=self.config['host'] and mac==self.config.get('wake_mac'):mac=''
   if mac:mac=mac_address(mac)
   broadcast=wake_address(broadcast)
-  saved=dict(wake_mac=mac,wake_broadcast=broadcast,mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port,auto_connect=automatic,share_readings=sharing)
+  saved=dict(wake_mac=mac,wake_broadcast=broadcast,mode=mode,port=port,baud=baud,host=host,tcp_port=tcp_port,auto_connect=automatic,share_readings=sharing,share_controls=controls,share_power=power_sharing)
   self.settings.parent.mkdir(parents=True,exist_ok=True);tmp=self.settings.with_suffix('.tmp');tmp.write_text(json.dumps(saved));tmp.replace(self.settings)
   self.startup_mode=mode;self.config.update({k:v for k,v in saved.items() if k!='mode'})
   if self.worker is None:self.config['mode']=mode
@@ -234,6 +240,55 @@ class Controller:
   state=self.snapshot()['state']
   keys=('status','age_seconds','forward_watts','reflected_watts','swr','temperature_c','operate','antenna','atu_enabled','demo')
   return dict(schema_version=1,model='KPA1500',**{key:state.get(key) for key in keys})
+ def shared_controls(self):
+  # Cached capabilities only. The existing worker owns all hardware I/O.
+  with self.guard:
+   if not self.config.get('share_readings') or not self.config.get('share_controls'):
+    raise PermissionError('Enable Share Operate / Standby controls with DX Caliber in KPA1500 Control.')
+   snap=self.snapshot();state=snap['state'];pending=any(a['status']=='queued' for a in self.action_log)
+   ready=(not (self.read_only or self.offline_only or self.launch_pending or pending)
+          and state.get('status')=='live' and state.get('transmitting') is False
+          and state.get('tuning') is False and type(state.get('forward_watts')) in (int,float)
+          and 0<=state['forward_watts']<=.5 and type(state.get('operate')) is bool)
+   action=self.action_log[0] if self.action_log else {}
+   return dict(schema_version=1,model='KPA1500',generation=self.generation,status=state.get('status'),
+    operate=state.get('operate'),can_operate=bool(ready and state['operate'] is False),
+    can_standby=bool(ready and state['operate'] is True),pending=pending,
+    action_id=action.get('id'),action_status=action.get('status'),message=action.get('message',''))
+ def shared_control_action(self,value):
+  with self.guard:
+   caps=self.shared_controls();name=value.get('action')
+   if (name not in ('operate','standby') or value.get('generation')!=caps['generation']
+       or type(value.get('expected_operate')) is not bool or value['expected_operate'] is not caps['operate']):
+    raise ValueError('Amplifier connection or mode changed. Nothing sent.')
+   if not caps['can_'+name]:raise ValueError('Amplifier is not ready for this mode request.')
+   return self.action(dict(action=name,generation=self.generation))
+ def shared_power(self):
+  # The companion remains the only equipment owner; status is cached only.
+  with self.guard:
+   if not self.config.get('share_readings') or not self.config.get('share_power'):
+    raise PermissionError('Enable Share power controls with DX Caliber in KPA1500 Control.')
+   state=self.snapshot()['state'];status=state.get('status');pending=any(a['status']=='queued' for a in self.action_log)
+   available=not (self.read_only or self.offline_only or self.launch_pending or pending)
+   off=(available and status=='live' and state.get('transmitting') is False
+        and state.get('tuning') is False and type(state.get('forward_watts')) in (int,float)
+        and 0<=state['forward_watts']<=.5)
+   saved=self.config
+   on=(available and status=='powered_off' and (saved['mode']=='simulator'
+       or (saved['mode']=='usb' and bool(saved['port'])) or (saved['mode']=='tcp' and bool(saved['wake_mac']))))
+   action=self.action_log[0] if self.action_log else {}
+   return dict(schema_version=1,model='KPA1500',generation=self.generation,status=status,
+    can_on=bool(on),can_off=bool(off),pending=pending,demo=state.get('demo') is True,
+    action_id=action.get('id'),action_status=action.get('status'),message=action.get('message') or state.get('message',''))
+ def shared_power_action(self,value):
+  with self.guard:
+   caps=self.shared_power();name=value.get('action')
+   if (name not in ('power_on','power_off') or value.get('confirmed') is not True
+       or value.get('generation')!=caps['generation'] or value.get('expected_status')!=caps['status']):
+    raise ValueError('Power request not confirmed or amplifier connection/state changed. Nothing sent.')
+   if not caps['can_on' if name=='power_on' else 'can_off']:
+    raise ValueError('Current amplifier state does not permit this power request.')
+   return self.action(dict(action=name,generation=self.generation,confirm_power_off=True))
  def action(self,value):
   if self.read_only:raise ValueError('Read-only telemetry: all controls, power and wake requests are disabled.')
   with self.guard:

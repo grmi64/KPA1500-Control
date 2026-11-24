@@ -26,9 +26,84 @@ class NetworkProviderTests(unittest.TestCase):
   import windows_network
   with patch('windows_network.subprocess.run',return_value=Mock(stdout=json.dumps([self.record()]))) as run:
    self.assertEqual(len(windows_network.local_targets()),253)
-   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],5)
+   argv=run.call_args.args[0];self.assertIn('Get-NetRoute',argv[-1]);self.assertIn('Get-NetIPAddress',argv[-1]);self.assertEqual(run.call_args.kwargs['timeout'],15);self.assertEqual(run.call_args.kwargs['stdin'],__import__('subprocess').DEVNULL)
+
+
+ def test_slow_configuration_process_exceeds_old_limit_but_finishes_once(self):
+  import subprocess,windows_network
+  real_run=subprocess.run;reply='import time;time.sleep(6);print('+repr(json.dumps([self.record()]))+')'
+  def delayed(old_limit):
+   def launch(argv,**kw):
+    if old_limit:kw['timeout']=5
+    return real_run([sys.executable,'-c',reply],**kw)
+   return launch
+  with patch('windows_network.subprocess.run',side_effect=delayed(True)) as old:
+   with self.assertRaises(subprocess.TimeoutExpired):windows_network.local_targets()
+   old.assert_called_once()
+  with patch('windows_network.subprocess.run',side_effect=delayed(False)) as current:
+   self.assertEqual(len(windows_network.local_targets()),253);current.assert_called_once()
+
+ @unittest.skipUnless(sys.platform=='win32','Windows GUI standard-handle regression.')
+ def test_gui_invalid_stdin_fails_without_explicit_handle_and_provider_succeeds(self):
+  # Run in an isolated process: never alter the test runner's standard handles.
+  # A fixed synthetic reply replaces PowerShell; no network config/probes needed.
+  import subprocess
+  code="""
+import ctypes,json,subprocess,sys
+from unittest.mock import patch
+sys.path.insert(0,'Sources')
+import windows_network
+kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+kernel.GetStdHandle.argtypes=[ctypes.c_ulong];kernel.GetStdHandle.restype=ctypes.c_void_p
+kernel.SetStdHandle.argtypes=[ctypes.c_ulong,ctypes.c_void_p];kernel.SetStdHandle.restype=ctypes.c_int
+key=(-10)&0xffffffff;original=kernel.GetStdHandle(key)
+assert kernel.SetStdHandle(key,ctypes.c_void_p(-1))
+real_run=subprocess.run;results=[]
+try:
+ for reproduce_old in (True,False):
+  def route_reply(argv,**kw):
+   if reproduce_old:kw.pop('stdin',None)
+   return real_run([sys.executable,'-c',REPLY],**kw)
+  try:
+   with patch('windows_network.subprocess.run',side_effect=route_reply):hosts=windows_network.local_targets()
+   results.append(['ok',len(hosts)])
+  except OSError as error:results.append(['error',error.winerror])
+finally:kernel.SetStdHandle(key,original)
+print(json.dumps(results))
+""".replace('REPLY',repr('print('+repr(json.dumps([self.record()]))+')'))
+  result=subprocess.run([sys.executable,'-B','-c',code],cwd=pathlib.Path(__file__).resolve().parents[1],stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=15,check=True)
+  self.assertEqual(json.loads(result.stdout),[['error',6],['ok',253]])
+
+
+class NetworkProbeTests(unittest.TestCase):
+ def test_route_config_is_checked_without_device_probes(self):
+  import windows_network_probe
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',return_value=[NetworkProviderTests().record()]):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),0)
+   report=json.loads(path.read_text());self.assertEqual(report['target_count'],253);self.assertTrue(report['renderer_ready']);self.assertTrue(report['discovery_supported'])
+ def test_no_default_route_is_a_valid_offline_configuration(self):
+  import windows_network_probe
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',return_value=[]):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),0)
+   report=json.loads(path.read_text());self.assertEqual(report['status'],'passed');self.assertFalse(report['discovery_supported']);self.assertEqual(report['target_count'],0)
+ def test_helper_failure_cannot_be_reported_as_a_pass(self):
+  import windows_network_probe,subprocess
+  with tempfile.TemporaryDirectory() as directory,patch('windows_network_probe.read_records',side_effect=subprocess.TimeoutExpired('fixed local query',5)):
+   path=pathlib.Path(directory)/'result.json'
+   self.assertEqual(windows_network_probe.run(path,renderer_ready=True),1)
+   report=json.loads(path.read_text());self.assertEqual(report['status'],'failed');self.assertEqual(report['exception'],'TimeoutExpired');self.assertIn('timed out',report['message'])
 
 class DiscoveryTests(unittest.TestCase):
+ def test_interface_failure_is_distinct_from_no_amplifier_and_retry_clears_it(self):
+  import subprocess
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',side_effect=subprocess.TimeoutExpired('fixed local query',5)),patch('discovery.identify',side_effect=AssertionError('No probes permitted')) as identify:
+   d=Discovery();d.start([],230400,1500);d.thread.join(2);state=d.snapshot()
+   identify.assert_not_called();self.assertEqual(state['total'],0);self.assertIn('No network scan performed',state['message']);self.assertIn('timed out after 5 seconds',state['message']);self.assertEqual(state['configuration_error']['type'],'TimeoutExpired')
+  with patch('discovery.WINDOWS',True),patch('discovery.local_targets',return_value=['192.0.2.1']),patch('discovery.identify',return_value={'mode':'tcp','host':'192.0.2.1','tcp_port':1500}):
+   d.start([],230400,1500);d.thread.join(2);state=d.snapshot();self.assertIsNone(state['configuration_error']);self.assertEqual(len(state['results']),1)
+
  def test_synthetic_discovery_cancel_and_completion_no_io(self):
   with patch('discovery.local_targets',side_effect=AssertionError('network config read')),patch('discovery.identify',side_effect=AssertionError('device opened')):
    d=Discovery(offline=True);d.start(['COM10'],230400,1500)

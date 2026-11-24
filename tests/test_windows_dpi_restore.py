@@ -118,7 +118,7 @@ class MinimizedDpiRestoreTests(unittest.TestCase):
   with patch('windows_app.window_dpi',return_value=120),patch('windows_app.set_window_bounds') as native:
    bridge._apply_display({'compact':True,'alwaysOnTop':False});self.assertEqual(bridge._full_size,(960,600))
    while queued:queued.pop(0)()
-   native.assert_not_called();self.assertEqual((self.window.width,self.window.height),(410,540))
+   native.assert_not_called();self.assertEqual((self.window.width,self.window.height),(430,540))
    bridge._apply_display({'compact':False,'alwaysOnTop':False})
    self.assertEqual((self.window.width,self.window.height),(960,600));self.assertIsNone(self.window._pending_dpi_bounds)
  def test_further_dpi_change_while_maximized_scales_pending_normal_size(self):
