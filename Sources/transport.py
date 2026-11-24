@@ -30,12 +30,14 @@ class PosixSerialTransport:
    return data
   return b''
  def close(self):
-  if self.fd is not None:
-   try:
-    if self.old is not None:termios.tcsetattr(self.fd,termios.TCSANOW,self.old)
-   except OSError:pass
-   finally:os.close(self.fd);self.fd=None
-  self.guard.release()
+  fd,self.fd=self.fd,None
+  try:
+   if fd is not None:
+    try:
+     if self.old is not None:termios.tcsetattr(fd,termios.TCSANOW,self.old)
+    except (OSError,termios.error):pass
+    finally:os.close(fd)
+  finally:self.guard.release()
 
 
 def tcp_endpoint(host,port):

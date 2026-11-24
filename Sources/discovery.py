@@ -38,15 +38,15 @@ def identify(candidate,cancel,serial_factory=SerialTransport,tcp_factory=TCPTran
  return None
 
 class Discovery:
- def __init__(self,offline=False):self.offline=offline;self.checked=0;self.total=0;self.lock=threading.RLock();self.cancel=threading.Event();self.running=False;self.results=[];self.message='';self.thread=None
+ def __init__(self,offline=False):self.offline=offline;self.checked=0;self.total=0;self.lock=threading.RLock();self.cancel=threading.Event();self.running=False;self.results=[];self.message='';self.thread=None;self.configuration_error=None
  def snapshot(self):
-  with self.lock:return dict(running=self.running,results=list(self.results),message=self.message,checked=self.checked,total=self.total,demo=self.offline)
+  with self.lock:return dict(running=self.running,results=list(self.results),message=self.message,checked=self.checked,total=self.total,demo=self.offline,configuration_error=dict(self.configuration_error) if self.configuration_error else None)
  def start(self,usb_ports,baud,tcp_port):
   if type(baud) is not int or baud not in BAUDS:raise ValueError('Choose a supported USB baud rate.')
   if type(tcp_port) is not int or not 1<=tcp_port<=65535:raise ValueError('Choose a TCP port from 1 to 65535.')
   with self.lock:
    if self.running:raise ValueError('Discovery is already running.')
-   self.running=True;self.results=[];self.checked=0;self.total=0;self.message='Simulating discovery…' if self.offline else 'Searching the local network; USB ports are listed passively.' if WINDOWS else 'Searching USB and the local network…';self.cancel=threading.Event()
+   self.running=True;self.results=[];self.checked=0;self.total=0;self.configuration_error=None;self.message='Simulating discovery…' if self.offline else 'Searching the local network; USB ports are listed passively.' if WINDOWS else 'Searching USB and the local network…';self.cancel=threading.Event()
    self.thread=threading.Thread(target=self.run,args=(list(usb_ports)[:16],baud,tcp_port),daemon=True);self.thread.start()
   return self.snapshot()
  def stop(self):self.cancel.set();return self.snapshot()
@@ -65,7 +65,13 @@ class Discovery:
    candidates=[] if WINDOWS else [dict(mode='usb',port=p,baud=baud) for p in usb_ports]
    if WINDOWS:warning=' USB ports are listed passively in Connection; select the amplifier port explicitly. No USB identity probes sent.'
    try:candidates += [dict(mode='tcp',host=h,tcp_port=tcp_port) for h in local_targets()[:254]]
-   except (OSError,ValueError,subprocess.SubprocessError):warning+=' Local network discovery unavailable; use manual IP settings.'
+   except (OSError,ValueError,subprocess.SubprocessError) as error:
+    if isinstance(error,subprocess.TimeoutExpired):reason=f'Local interface lookup timed out after {error.timeout} seconds'
+    elif isinstance(error,subprocess.CalledProcessError):reason=f'Local interface lookup failed (helper exit code {error.returncode})'
+    elif isinstance(error,OSError):reason='Local interface lookup failed'+(f' (Windows error {error.winerror})' if getattr(error,'winerror',None) is not None else '')
+    else:reason=str(error).rstrip('. ')
+    with self.lock:self.configuration_error=dict(type=type(error).__name__,reason=reason,winerror=getattr(error,'winerror',None),returncode=getattr(error,'returncode',None))
+    warning+=' Local network discovery unavailable: '+reason+'. Use manual IP settings.'
    candidates=candidates[:270]
    with self.lock:self.total=len(candidates)
    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
@@ -84,4 +90,4 @@ class Discovery:
    warning+=' Discovery could not finish. Try again or use manual connection settings.'
   finally:
    if failures:warning+=' Some connections could not be checked. If your amplifier is in the list, select it and click Connect. If it is missing, search again or enter its connection details manually.'
-   with self.lock:self.running=False;self.message=('Discovery cancelled.' if self.cancel.is_set() else 'Discovery complete. Select a result, then click Connect.' if self.results else 'No available KPA1500 found. Check power, cabling, USB baud and other clients.')+warning
+   with self.lock:self.running=False;self.message=('Discovery cancelled.' if self.cancel.is_set() else 'Discovery complete. Select a result, then click Connect.' if self.results else 'No network scan performed.' if self.configuration_error and self.total==0 else 'No available KPA1500 found. Check power, cabling, USB baud and other clients.')+warning
