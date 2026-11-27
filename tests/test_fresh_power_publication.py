@@ -1,6 +1,6 @@
 """Offline publication-latency regressions; synthetic transports and clocks only."""
 import pathlib,queue,sys,tempfile,unittest
-from unittest.mock import patch
+from unittest.mock import Mock,patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'Sources'))
 import engine
 from protocol import Session,FAST,SLOW
@@ -71,6 +71,24 @@ class FreshPowerPublicationTests(unittest.TestCase):
   published=[];amp,wire=self.session(publish=published.append);amp.identify();amp.poll(True);published.clear();self.assertEqual(amp.action('operate')['status'],'confirmed');self.assertEqual(published,[]);self.assertEqual(wire.writes.count('^OS1;'),1)
  def test_powered_off_poll_does_not_publish_live_or_query_other_tags(self):
   published=[];wire=TimedSimulator(self.clock);wire.power=False;amp,_=self.session(wire,published.append);amp.poll(True);self.assertEqual(published,[]);self.assertEqual(wire.writes,['^ON;']);self.assertEqual(amp.snapshot()['status'],'powered_off')
+ def test_powered_off_reply_only_confirms_connection_while_fresh_with_a_reader(self):
+  with tempfile.TemporaryDirectory() as d:
+   c=engine.Controller(pathlib.Path(d)/'settings.json')
+   c.events=queue.Queue()
+   reader=Mock(pid=123)
+   c.worker=reader
+   stamp=self.clock.now
+   c.events.put(('state',dict(status='powered_off',powered_on=False,age_seconds=None,_off_reply_at=stamp)))
+   state=c.snapshot()['state']
+   self.assertTrue(state['off_reply_current'])
+   self.assertNotIn('_off_reply_at',state)
+   self.clock.now=stamp+3
+   self.assertFalse(c.snapshot()['state']['off_reply_current'])
+   c.events.put(('terminal',dict(status='powered_off',powered_on=False)))
+   reader.is_alive.return_value=False
+   state=c.snapshot()['state']
+   self.assertEqual(state['status'],'powered_off')
+   self.assertFalse(state['off_reply_current'])
  def run_worker(self,drop_power=False,fail_event=False):
   wire=TimedSimulator(self.clock)
   if drop_power:wire.drop.add(b'^PWF;')

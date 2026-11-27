@@ -35,7 +35,8 @@ def worker_main(config,events,commands,stop):
   amp=Session(transport,cancelled=stop.is_set)
   def publish(state):
    # Queue delivery must not reset the age of the real power observation.
-   events.put(('state',dict(state,demo=demo,_power_observed_at=amp.last_live)))
+   off_reply_at=amp.observed.get('powered_on') if state['status']=='powered_off' else None
+   events.put(('state',dict(state,demo=demo,_power_observed_at=amp.last_live,_off_reply_at=off_reply_at)))
   amp.on_power=publish
   if config.get('wake_request'):
    amp.read('MA')
@@ -228,6 +229,10 @@ class Controller:
  def snapshot(self):
   with self.guard:
    self.pump();state=dict(self.state)
+   # A cached power-off confirmation can outlive its reader, for example after TCP shutdown.
+   off_reply_at=state.pop('_off_reply_at',None)
+   state['off_reply_current']=(state.get('status')=='powered_off' and off_reply_at is not None
+     and 0<=time.time()-off_reply_at<3 and bool(self.worker and self.worker.is_alive()))
    age=state.get('age_seconds')
    if age is not None:state['age_seconds']=age+max(0,time.time()-self.received)
    if state.get('status')=='live' and state.get('age_seconds',99)>=2.5:state.update(status='stale',message='Amplifier readings are stale.')

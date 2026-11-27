@@ -23,6 +23,12 @@ function setup(api){const errors=[],c={document:{body:{inert:false}},prefs:{them
  const labels={$:id=>nodes[id],paintControls:()=>{}};vm.createContext(labels);
  for(const status of ['disconnected','stale','error']){Object.assign(labels,{snapshot:{offline_only:true,connection:{mode:'usb',port:''}},state:{status},live:false});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,'Simulator · no hardware connection');assert.equal(nodes.connectionStatus.textContent,'SIMULATOR');assert.equal(nodes.demoBanner.hidden,false);assert.equal(nodes.connectionStatus.dataset.state,status);}
  Object.assign(labels,{snapshot:{offline_only:false},state:{status:'live',demo:false},live:true});vm.runInContext('{'+labelSource+'}',labels);assert.equal(nodes.connectionStatus.textContent,'CONNECTED');assert.equal(nodes.demoBanner.hidden,true);
+ for(const current of [true,false]){
+  Object.assign(labels,{snapshot:{offline_only:false,connection:{mode:'usb',port:'COM10'}},state:{status:'powered_off',off_reply_current:current},live:false});
+  vm.runInContext('{'+labelSource+footerSource+'}',labels);
+  assert.equal(nodes.connectionStatus.textContent,current?'CONNECTED':'OFFLINE');
+  assert.equal(nodes.sampleAge.textContent,current?'Power status received':'No amplifier data');
+ }
  for(const [connection,expected] of [[{mode:'usb',port:'COM10'},'COM10'],[{mode:'usb',port:''},'USB · select amplifier port'],[{mode:'tcp',host:'192.0.2.10',tcp_port:1500},'TCP/IP · 192.0.2.10:1500']]){Object.assign(labels,{snapshot:{offline_only:false,connection},state:{status:'error'},live:false});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,expected);}
  Object.assign(labels,{snapshot:{offline_only:false,connection:{mode:'simulator'}},state:{status:'live',demo:true},live:true});vm.runInContext('{'+labelSource+footerSource+'}',labels);assert.equal(nodes.footerConnection.textContent,'Simulator · no hardware connection');
  console.log('PASS: serialized native preference saves, snapshots, failure recovery and persistent simulation labeling.');
